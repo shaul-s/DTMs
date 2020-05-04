@@ -94,7 +94,7 @@ vtkRenderer.AddActor(vtkActor)
 vtkActor.GetProperty().LightingOn()
 #vtkActor.GetProperty().SetRepresentationToWireframe()
 #vtkActor.GetProperty().SetRepresentationToPoints()
-#vtkActor.GetProperty().SetRepresentationToSurface()
+#
 
 # Set camera and background data
 vtkRenderer.ResetCamera()
