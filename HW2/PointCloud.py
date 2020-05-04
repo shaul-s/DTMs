@@ -1,6 +1,6 @@
 import vtk
 from tkinter.filedialog import askopenfilenames
-from numpy import hstack, array, concatenate, vstack
+from numpy import array, vstack
 
 
 class point3D:
@@ -24,22 +24,23 @@ class PointCloud:
         self.pts = None
 
     def initializeData(self):
-        try:
-            point3Dfiles = askopenfilenames(title='Select Input File')
-        except:
-            print('Oops! something went wrong :(')
+
+        point3Dfiles = askopenfilenames(title='Select Input File')
 
         temp_points = []
 
         for filename in point3Dfiles:
-            with open(filename) as file:
-                lines = file.readlines()
-                for line in lines:
-                    line = line.split()
-                    if len(line) < 3:
-                        continue
-                    else:
-                        temp_points.append(array(line[0:3]).astype(float))
+            try:
+                with open(filename) as file:
+                    lines = file.readlines()
+                    for line in lines:
+                        line = line.split()
+                        if len(line) < 3:
+                            continue
+                        else:
+                            temp_points.append(array(line[0:3]).astype(float))
+            except:
+                print('Oops! your file is not supported')
 
         self.pts = vstack(temp_points)
 
@@ -62,7 +63,7 @@ class PointCloud:
         # Setting up the vtkPoints and scalars
         for pnt in self.pts:
             # Inserting the i-th point to the vtkPoints object
-            rgb = array([255,255,255])
+            rgb = array([255, 255, 255])
             id = vtkPnt.InsertNextPoint(pnt[0], pnt[1], pnt[2])
             # Adding color for the i-th point
             pnt_rgb.InsertNextTuple3(rgb[0], rgb[1], rgb[2])
