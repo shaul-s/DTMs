@@ -104,5 +104,3 @@ interactor = vtk.vtkRenderWindowInteractor()
 interactor.SetRenderWindow(vtkRenderWindow)
 vtkRenderWindow.Render()
 interactor.Start()
-
-# print('hi')
