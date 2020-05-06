@@ -1,5 +1,5 @@
 class GeoGridCell:
-    def __init__(self,ind,lx,ly,bottomLeft):
+    def __init__(self,ind,lx,ly):
         """
         data structure of a geographic cell for GeoEqualCells
         """

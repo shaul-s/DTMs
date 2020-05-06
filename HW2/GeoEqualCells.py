@@ -1,4 +1,4 @@
-from GeoGridCell import GeoGridCell
+from HW2.GeoGridCell import GeoGridCell
 from HW2.utils import *
 
 class GeoEqualCells:
@@ -27,14 +27,24 @@ class GeoEqualCells:
 
     def initializeGeoEqualCells(self, points, avgN, ratio):
         self.__borders = self.findBorders(points)
-        cellsN = points.shape(0)/avgN
-        gridArea = distance(self.Borders[0,0],self.Borders[0,1])*distance(self.Borders[0,0],self.Borders[1,0])
-        cellArea = gridArea/cellsN
+        self.__ratio = ratio
+        cellsN = points.shape[0]/avgN
+        gridLx = np.abs(self.Borders[0,0]-self.Borders[0,1])
+        gridLy = np.abs(self.Borders[0,0]-self.Borders[1,0])
+        self.__area = gridLx*gridLy
+        cellArea = self.Area/cellsN
+        cellLy = cellArea*(ratio[0]/ratio[1])
+        cellLx = cellArea/cellLy
+        # for i in range(cellsN):
+
 
     def findBorders(self,points):
         xmax = np.max(points[:,0])
         ymax = np.max(points[:,1])
         xmin = np.min(points[:,0])
-        ymin = np.max(points[:,1])
+        ymin = np.min(points[:,1])
 
         return np.array([[xmin,ymax],[xmax,ymax],[xmin,ymin],[xmax,ymin]])
+
+if __name__ == '__main__':
+    pass

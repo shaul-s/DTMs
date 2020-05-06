@@ -2,7 +2,7 @@ from KDTree import *
 from PointCloud import *
 from HW2.utils import *
 from numpy import array, argsort, deg2rad, arctan
-
+from HW2.GeoEqualCells import *
 
 def sqDist(p, cloud):
     """
@@ -45,6 +45,8 @@ if __name__ == '__main__':
 
     cloud.pts = cloud.pts[argsort(cloud.pts[:, 0])]
 
+    g = GeoEqualCells()
+    g.initializeGeoEqualCells(cloud.pts,10,[1,1])
     # kdtree = KDTree()
     # kdtree.initializeKDTree(cloud.pts, cloud.pts.shape[1])
     #

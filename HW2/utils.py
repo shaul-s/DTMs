@@ -27,16 +27,23 @@ def computeSlope(p, points):
     :param q: point3D
     :return: slope
     """
-    return (points[:,2] - p[2]) / distance(p, points)
+    return (points[:,2] - p[2]) / distanceVector(p, points)
 
 
-def distance(p, points):
+def distanceVector(p, points):
     """
     horizontal distance between two points
     """
     diffx = points[:, 0] - p[0]
     diffy = points[:, 1] - p[1]
     return np.sqrt(diffx ** 2 + diffy ** 2)
+
+
+def distance(p, q):
+    """
+    horizontal distance between two points
+    """
+    return np.linalg.norm(p[0:2]-q[0:2])
 
 
 if __name__ == '__main__':
