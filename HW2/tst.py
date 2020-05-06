@@ -23,22 +23,17 @@ def naiveSearch(radius, threshold, cloud):
     """
     terrain = []
     objects = []
-    pointsInRadius = []
-    for i, p in enumerate(cloud):
-        dist = sqDist(p, cloud)
-        pointsInRadius = cloud[dist<radius**2,:]
 
+    for i, p in enumerate(cloud):
+        # distance from p to every point in the cloud
+        dist = sqDist(p, cloud)
+        # finding the points inside the radius
+        pointsInRadius = cloud[dist<radius**2,:]
+        # checking if a point is object or terrain
         if isObject(p, pointsInRadius, threshold):
             objects.append(p)
         else:
             terrain.append(p)
-            # if radius * radius >= dist > 0 and p[2] > q[2]:
-            #     slope = computeSlope(p, q)
-            #     if slope <= threshold:
-            #         terrain.append(p)
-            #     else:
-            #         objects.append(p)
-            #     break
 
     return terrain, objects
 
