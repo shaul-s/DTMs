@@ -48,9 +48,7 @@ class KDTree:
     def __nnsInRadius(self, data, pnt, dim, radius, neighbors, depth=0):
 
         if data[0] is None:
-            print('Oops! your tree does not have any data in it')
             return neighbors
-
 
         axis = depth % dim
 
