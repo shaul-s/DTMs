@@ -15,13 +15,12 @@ class KDTree:
         """
         self.data = self.__constructKDTree(pts, dim)
 
-    def nnsInRadius(self, pnt, dim, radius, i=0):
+    def nnsInRadius(self, pnt, dim, radius):
 
         neighbors = []
-        self.__nnsInRadius(self.data, pnt, dim, radius, neighbors)
+        neighbors = self.__nnsInRadius(self.data, pnt, dim, radius, neighbors)
 
         return neighbors
-
 
     # ---------------------- Private methods ----------------------
     def __constructKDTree(self, pts, dim, depth=0):
@@ -42,32 +41,29 @@ class KDTree:
         """
         :return: float squared distance between two points
         """
-        if p1.shape[0] == p2.shape[0]:
-            diff = p1 - p2
-            return sum(diff * diff)
-        else:
-            return inf
+        dx = p2[0] - p1[0]
+        dy = p2[1] - p1[1]
+        return dx * dx + dy * dy
 
-    def __nnsInRadius(self, data, pnt, dim, radius, neighbors, i=0):
+    def __nnsInRadius(self, data, pnt, dim, radius, neighbors, depth=0):
 
-        if data is not None:
-            dist = self.__sqDist(pnt, data[2])
-            dx = data[2][i] - pnt[i]
-            if dist < radius * radius:
-                neighbors.append(data[2])
-            i = (i + 1) % dim
-            """
-            if pnt[i] <= data[2][i] + dist:
-                if data[0] is not None:
-                    self.__nnsInRadius(data[0], pnt, dim, radius, neighbors, i)
-            if pnt[i] >= data[2][i] - dist:
-                if data[1] is not None:
-                    self.__nnsInRadius(data[1], pnt, dim, radius, neighbors, i)
-            """
-            for b in [dx < 0] + [dx >= 0] * (dx * dx < radius * radius):
-                self.__nnsInRadius(data[b], pnt, dim, neighbors, i)
+        if data[0] is None:
+            print('Oops! your tree does not have any data in it')
+            return neighbors
+
+
+        axis = depth % dim
+
+        next_branch = None
+
+        if 0 < self.__sqDist(pnt, data[2]) < radius * radius:
+            neighbors.append(data[2])
+        if pnt[axis] < data[2][axis]:
+            next_branch = data[0]
         else:
-            print('Oops! your tree does not have data')
+            next_branch = data[1]
+
+        return self.__nnsInRadius(next_branch, pnt, dim, radius, neighbors, depth + 1)
 
 
 if __name__ == '__main__':
