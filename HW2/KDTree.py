@@ -1,4 +1,4 @@
-from numpy import argsort, array, inf
+from numpy import argsort, array, reshape
 
 
 class KDTree:
@@ -15,13 +15,12 @@ class KDTree:
         """
         self.data = self.__constructKDTree(pts, dim)
 
-    def nnsInRadius(self, pnt, dim, radius, i=0):
+    def nnsInRadius(self, pnt, dim, radius):
 
         neighbors = []
-        self.__nnsInRadius(self.data, pnt, dim, radius, neighbors)
+        neighbors = self.__nnsInRadiusNaive(self.data, pnt, dim, radius, neighbors)
 
-        return neighbors
-
+        return reshape(array(neighbors), (len(neighbors), dim + 1))
 
     # ---------------------- Private methods ----------------------
     def __constructKDTree(self, pts, dim, depth=0):
@@ -42,32 +41,80 @@ class KDTree:
         """
         :return: float squared distance between two points
         """
-        if p1.shape[0] == p2.shape[0]:
-            diff = p1 - p2
-            return sum(diff * diff)
+        dx = p2[0] - p1[0]
+        dy = p2[1] - p1[1]
+        return dx * dx + dy * dy
+
+    def __closerDist(self, pivot, p1, p2):
+        """
+        :return: point that is closest to the pivot
+        """
+        if p1 is None:
+            return p2
+
+        if p2 is None:
+            return p1
+
+        d1 = self.__sqDist(pivot, reshape(array(p1), (len(pivot))))
+        d2 = self.__sqDist(pivot, reshape(array(p2), (len(pivot))))
+
+        if d1 < d2:
+            return p1
         else:
-            return inf
+            return p2
 
-    def __nnsInRadius(self, data, pnt, dim, radius, neighbors, i=0):
+    def __nnsInRadiusNaive(self, data, pnt, dim, radius, neighbors, depth=0):
 
-        if data is not None:
-            dist = self.__sqDist(pnt, data[2])
-            dx = data[2][i] - pnt[i]
-            if dist < radius * radius:
+        if data is None or not data[2].size:  # check to see if child is empty
+            return neighbors
+
+        axis = depth % dim
+
+        next_branch = None
+
+        data[2] = reshape(data[2], (dim + 1,))
+
+        if self.__sqDist(pnt, data[2]) < radius * radius:
+            neighbors.append(data[2])
+
+        if pnt[axis] < data[2][axis]:
+            next_branch = data[0]
+        else:
+            next_branch = data[1]
+
+        return self.__nnsInRadiusNaive(next_branch, pnt, dim, radius, neighbors, depth + 1)
+
+    def __nnsInRadius(self, data, pnt, dim, radius, neighbors, depth=0):
+        """
+        still under work
+
+        """
+        if data is None or not data[2].size:  # check to see if child is empty
+            return None
+
+        axis = depth % dim
+
+        next_branch = None
+        opposite_branch = None
+
+        data[2] = reshape(data[2], (dim + 1,))
+
+        if pnt[axis] < data[2][axis]:
+            next_branch = data[0]
+            opposite_branch = data[1]
+        else:
+            next_branch = data[1]
+            opposite_branch = data[0]
+
+        best = self.__closerDist(pnt, self.__nnsInRadius(next_branch, pnt, dim, radius, neighbors, depth + 1), data[2])
+
+        if self.__sqDist(pnt, best) > (pnt[axis] - data[2][axis]) ** 2:
+            if self.__sqDist(pnt, best) < radius * radius:
                 neighbors.append(data[2])
-            i = (i + 1) % dim
-            """
-            if pnt[i] <= data[2][i] + dist:
-                if data[0] is not None:
-                    self.__nnsInRadius(data[0], pnt, dim, radius, neighbors, i)
-            if pnt[i] >= data[2][i] - dist:
-                if data[1] is not None:
-                    self.__nnsInRadius(data[1], pnt, dim, radius, neighbors, i)
-            """
-            for b in [dx < 0] + [dx >= 0] * (dx * dx < radius * radius):
-                self.__nnsInRadius(data[b], pnt, dim, neighbors, i)
-        else:
-            print('Oops! your tree does not have data')
+            best = self.__closerDist(pnt, self.__nnsInRadius(opposite_branch, pnt, dim, radius, neighbors, depth + 1),
+                                     best)
+
+        return neighbors
 
 
 if __name__ == '__main__':
