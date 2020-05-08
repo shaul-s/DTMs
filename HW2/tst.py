@@ -18,6 +18,7 @@ def naiveSearch(radius, threshold, cloud):
     :type: threshold: deg
     :type: cloud: array nX3
     """
+    start = time.time()
     terrain = []
     objects = []
 
@@ -32,6 +33,8 @@ def naiveSearch(radius, threshold, cloud):
         else:
             terrain.append(p)
 
+    end = time.time()
+    print('KDTree search took ', end - start, 'seconds')
     return terrain, objects
 
 
@@ -66,12 +69,12 @@ if __name__ == '__main__':
     # p1 = array([171962.554, 433217.960, 6.609])
     # res = kdtree.nnsInRadius(p1, p1.shape[0], 45.)
 
-    # start = time.time()
+    #start = time.time()
     # terrain, objects = naiveSearch(5, 65, cloud.pts)
-    terrain, objects = KDTreeSearch(5, 65, cloud.pts, kdtree)
-    # terrain, objects = g.classifyPoints(5, 65)
-    # end = time.time()
-    # print(end)
+    terrain, objects = KDTreeSearch(10, 15, cloud.pts, kdtree)
+    #terrain, objects = g.classifyPoints(5, 65)
+    #end = time.time()
+    #print(end - start)
     cloud.drawFilteredPointCloud(objects, terrain)
 
     pnt = array([171930.554, 433217.960, 6.609])

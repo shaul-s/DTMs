@@ -108,8 +108,14 @@ class PointCloud:
         vtkRenderWindow.Render()
         interactor.Start()
 
-    def drawFilteredPointCloud(self, objects, terrain):
+    def drawFilteredPointCloud(self, objects, terrain, flag='all'):
+        """
 
+        :param objects:
+        :param terrain:
+        :param flag:
+        :return:
+        """
         # Initialize VTK points object
         vtkPnt = vtk.vtkPoints()
         # Initialize color scalars
@@ -124,27 +130,54 @@ class PointCloud:
         # Initialize VTK vertices object for points
         vtkVertex_ind = vtk.vtkCellArray()
 
-        # Setting up the vtkPoints and scalars
-        for pnt in objects:
-            # Inserting the i-th point to the vtkPoints object
-            rgb = array([255, 0, 0])
-            id = vtkPnt.InsertNextPoint(pnt[0], pnt[1], pnt[2])
-            # Adding color for the i-th point
-            pnt_rgb.InsertNextTuple3(rgb[0], rgb[1], rgb[2])
-            # Adding the index of i-th point to vertex vtk index array
-            vtkVertex_ind.InsertNextCell(1)
-            vtkVertex_ind.InsertCellPoint(id)
+        if flag == 'terrain':
+            # Setting up the vtkPoints and scalars
+            for pnt in terrain:
+                # Inserting the i-th point to the vtkPoints object
+                rgb = array([0, 255, 0])
+                id = vtkPnt.InsertNextPoint(pnt[0], pnt[1], pnt[2])
+                # Adding color for the i-th point
+                pnt_rgb.InsertNextTuple3(rgb[0], rgb[1], rgb[2])
+                # Adding the index of i-th point to vertex vtk index array
+                vtkVertex_ind.InsertNextCell(1)
+                vtkVertex_ind.InsertCellPoint(id)
 
-        # Setting up the vtkPoints and scalars
-        for pnt in terrain:
-            # Inserting the i-th point to the vtkPoints object
-            rgb = array([0, 255, 0])
-            id = vtkPnt.InsertNextPoint(pnt[0], pnt[1], pnt[2])
-            # Adding color for the i-th point
-            pnt_rgb.InsertNextTuple3(rgb[0], rgb[1], rgb[2])
-            # Adding the index of i-th point to vertex vtk index array
-            vtkVertex_ind.InsertNextCell(1)
-            vtkVertex_ind.InsertCellPoint(id)
+        elif flag == 'objects':
+            for pnt in objects:
+                # Inserting the i-th point to the vtkPoints object
+                rgb = array([255, 0, 0])
+                id = vtkPnt.InsertNextPoint(pnt[0], pnt[1], pnt[2])
+                # Adding color for the i-th point
+                pnt_rgb.InsertNextTuple3(rgb[0], rgb[1], rgb[2])
+                # Adding the index of i-th point to vertex vtk index array
+                vtkVertex_ind.InsertNextCell(1)
+                vtkVertex_ind.InsertCellPoint(id)
+
+        elif flag == 'all':
+            # Setting up the vtkPoints and scalars
+            for pnt in objects:
+                # Inserting the i-th point to the vtkPoints object
+                rgb = array([255, 0, 0])
+                id = vtkPnt.InsertNextPoint(pnt[0], pnt[1], pnt[2])
+                # Adding color for the i-th point
+                pnt_rgb.InsertNextTuple3(rgb[0], rgb[1], rgb[2])
+                # Adding the index of i-th point to vertex vtk index array
+                vtkVertex_ind.InsertNextCell(1)
+                vtkVertex_ind.InsertCellPoint(id)
+
+            # Setting up the vtkPoints and scalars
+            for pnt in terrain:
+                # Inserting the i-th point to the vtkPoints object
+                rgb = array([0, 255, 0])
+                id = vtkPnt.InsertNextPoint(pnt[0], pnt[1], pnt[2])
+                # Adding color for the i-th point
+                pnt_rgb.InsertNextTuple3(rgb[0], rgb[1], rgb[2])
+                # Adding the index of i-th point to vertex vtk index array
+                vtkVertex_ind.InsertNextCell(1)
+                vtkVertex_ind.InsertCellPoint(id)
+
+        else:
+            return print('flag needs to be of the following: terrain, objects or all')
 
         # Set vtkpoint in vertexes poly data object
         vtkVertex.SetPoints(vtkPnt)

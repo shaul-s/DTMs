@@ -1,5 +1,6 @@
 from HW2.GeoGridCell import GeoGridCell
 from HW2.utils import *
+import time
 
 
 class GeoEqualCells:
@@ -130,11 +131,11 @@ class GeoEqualCells:
         indices = np.arange(len(self.Cells))
         indices = indices[(indices // self.CellsNx <= maxRow) * (indices // self.CellsNx > minRow)
                           * (indices % self.CellsNx <= maxCol) * (indices % self.CellsNx > minCol)]
-        pointsToCheck = p   # initialize np array, in the end we remove the first row
+        pointsToCheck = p  # initialize np array, in the end we remove the first row
         for i in indices:
             if self.Cells[i].Points.size == 0:
                 continue
-            pointsToCheck = np.vstack((pointsToCheck,self.Cells[i].Points))
+            pointsToCheck = np.vstack((pointsToCheck, self.Cells[i].Points))
         pointsToCheck = pointsToCheck[1:, :]
         distances = sqDist(p, pointsToCheck)
         pointsInRadius = pointsToCheck[distances < radius ** 2, :]
@@ -148,6 +149,7 @@ class GeoEqualCells:
         return int((p[0] - self.Borders[2]) // self.CellLx + ((p[1] - self.Borders[3]) // self.CellLy) * self.CellsNx)
 
     def classifyPoints(self, radius, threshold):
+        start = time.time()
         terrain = []
         objects = []
         for i, p in enumerate(self.Points):
@@ -158,7 +160,8 @@ class GeoEqualCells:
             else:
                 terrain.append(p)
 
-        return terrain, objects
+        end = time.time()
+        return terrain, objects, end - start
 
 
 if __name__ == '__main__':
