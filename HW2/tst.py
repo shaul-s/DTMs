@@ -3,14 +3,8 @@ from PointCloud import *
 from HW2.utils import *
 from numpy import array, argsort, deg2rad, arctan
 from HW2.GeoEqualCells import *
+import time
 
-def sqDist(p, cloud):
-    """
-    :return: float squared distance between two points
-    """
-    diffx = cloud[:,0] - p[0]
-    diffy = cloud[:,1] - p[1]
-    return diffx**2 + diffy**2
 
 
 def naiveSearch(radius, threshold, cloud):
@@ -46,15 +40,18 @@ if __name__ == '__main__':
     cloud.pts = cloud.pts[argsort(cloud.pts[:, 0])]
 
     g = GeoEqualCells()
-    g.initializeGeoEqualCells(cloud.pts,10,[1,1])
+    g.initializeGeoEqualCells(cloud.pts,100,[1,1])
     # kdtree = KDTree()
     # kdtree.initializeKDTree(cloud.pts, cloud.pts.shape[1])
     #
     # p1 = array([171962.554, 433217.960, 6.609])
     # res = kdtree.nnsInRadius(p1, p1.shape[0], 45.)
 
-    terrain, objects = naiveSearch(5, 65, cloud.pts)
-
+    start = time.time()
+    # terrain, objects = naiveSearch(5, 65, cloud.pts)
+    terrain, objects = g.classifyPoints(5, 65)
+    end = time.time()
+    print(end)
     cloud.drawFilteredPointCloud(objects, terrain)
 
     print('hi')

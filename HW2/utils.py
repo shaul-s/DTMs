@@ -46,6 +46,19 @@ def distance(p, q):
     return np.linalg.norm(p[0:2]-q[0:2])
 
 
+def sqDist(p, cloud):
+    """
+    :return: float squared distance between two points
+    """
+    if cloud.size <= 3:
+        diffx = cloud[0] - p[0]
+        diffy = cloud[1] - p[1]
+        return diffx ** 2 + diffy ** 2
+    diffx = cloud[:,0] - p[0]
+    diffy = cloud[:,1] - p[1]
+    return diffx**2 + diffy**2
+
+
 if __name__ == '__main__':
     p1 = np.array((0, 0, 0))
     p2 = np.array((1, 1, 1))
