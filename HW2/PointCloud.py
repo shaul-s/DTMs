@@ -108,7 +108,7 @@ class PointCloud:
         vtkRenderWindow.Render()
         interactor.Start()
 
-    def drawFilteredPointCloud(self, object, terrain):
+    def drawFilteredPointCloud(self, objects, terrain):
 
         # Initialize VTK points object
         vtkPnt = vtk.vtkPoints()
@@ -125,7 +125,7 @@ class PointCloud:
         vtkVertex_ind = vtk.vtkCellArray()
 
         # Setting up the vtkPoints and scalars
-        for pnt in object:
+        for pnt in objects:
             # Inserting the i-th point to the vtkPoints object
             rgb = array([255, 0, 0])
             id = vtkPnt.InsertNextPoint(pnt[0], pnt[1], pnt[2])
@@ -182,6 +182,7 @@ class PointCloud:
         interactor.SetRenderWindow(vtkRenderWindow)
         vtkRenderWindow.Render()
         interactor.Start()
+
 
 if __name__ == '__main__':
     cloud = PointCloud()
