@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
     start = time.time()
     # terrain, objects = naiveSearch(5, 65, cloud.pts)
-    terrain, objects = KDTreeSearch(5, 65, cloud.pts, kdtree)
+    # terrain, objects = KDTreeSearch(5, 65, cloud.pts, kdtree)
     terrain, objects = g.classifyPoints(5, 65)
     end = time.time()
     print(end)
