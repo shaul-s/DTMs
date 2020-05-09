@@ -1,5 +1,6 @@
 from HW2.GeoGridCell import GeoGridCell
 from HW2.utils import *
+import time
 
 
 class GeoEqualCells:
@@ -130,18 +131,26 @@ class GeoEqualCells:
         indices = np.arange(len(self.Cells))
         indices = indices[(indices // self.CellsNx <= maxRow) * (indices // self.CellsNx > minRow)
                           * (indices % self.CellsNx <= maxCol) * (indices % self.CellsNx > minCol)]
-        pointsToCheck = p   # initialize np array, in the end we remove the first row
-        for i in indices:
-            if self.Cells[i].Points.size == 0:
-                continue
-            pointsToCheck = np.vstack((pointsToCheck,self.Cells[i].Points))
-        pointsToCheck = pointsToCheck[1:, :]
+
+        # extracting all the points from the cells in the radius
+        pointsToCheck = np.vstack([x for x in map(self.addPoints, indices) if x is not None])
+        # pointsToCheck= np.vstack(list(map(self.addPoints,indices)))
+        # for i in indices:
+        #     if self.Cells[i].Points.size == 0:
+        #         continue
+        #     pointsToCheck = np.vstack((pointsToCheck, self.Cells[i].Points))
+        # pointsToCheck = pointsToCheck[1:, :]
         distances = sqDist(p, pointsToCheck)
         pointsInRadius = pointsToCheck[distances < radius ** 2, :]
 
         pointsInRadius = pointsInRadius[1:, :]
 
         return pointsInRadius
+
+    def addPoints(self,ind):
+        if self.Cells[ind].Points.size == 0:
+            return None
+        return self.Cells[ind].Points
 
     def findInd(self, p):
         """calculate index of cell in grid"""
