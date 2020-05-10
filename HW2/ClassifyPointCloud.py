@@ -39,6 +39,20 @@ def naiveSearch(radius, threshold, cloud):
 
 
 def KDTreeSearch(radius, threshold, cloud, kdtree):
+    """
+
+    :param radius:
+    :param threshold:
+    :param cloud:
+    :param kdtree:
+
+    :type radius:
+    :type threshold:
+    :type cloud:
+    :type kdtree:
+
+    :return:
+    """
     start = time.time()
     terrain = []
     objects = []
@@ -110,4 +124,4 @@ def drawClassification(terrain, objects, rtime, flag):
 
 if __name__ == '__main__':
     terrain, objects, rtime = classifyPointCloud(5, 65, 'KDTree')
-    drawClassification(terrain, objects, rtime, 'terrain')
+    drawClassification(terrain, objects, rtime, 'all')
