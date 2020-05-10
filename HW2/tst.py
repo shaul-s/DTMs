@@ -46,7 +46,7 @@ def KDTreeSearch(radius, threshold, cloud, kdtree):
     terrain = []
     objects = []
     for p in cloud:
-        pointsInRadius = unique(kdtree.nnsInRadius(p, cloud.shape[1] - 1, radius), axis=0)
+        pointsInRadius = kdtree.nnsInRadius(p, cloud.shape[1] - 1, radius)
         if isObject(p, pointsInRadius, threshold):
             objects.append(p)
         else:
@@ -79,8 +79,12 @@ if __name__ == '__main__':
     terrain1, objects1 = naiveSearch(5, 65, cloud.pts)
     terrain, objects = KDTreeSearch(5, 65, cloud.pts, kdtree)
     # terrain, objects = g.classifyPoints(5, 65)
-    # end = time.time()
-    # print(end - start)
+
+    print(len(objects))
+    print(len(terrain))
+    print(len(objects1))
+    print(len(terrain1))
+
     cloud.drawFilteredPointCloud(objects, terrain)
 
     pnt = array([171930.554, 433217.960, 6.609])

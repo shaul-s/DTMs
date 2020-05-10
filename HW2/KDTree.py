@@ -1,4 +1,5 @@
-from numpy import argsort, array, reshape, abs
+from numpy import argsort, array, reshape, vstack, unique
+from utils import *
 
 
 class KDTree:
@@ -18,24 +19,28 @@ class KDTree:
     def nnsInRadius(self, pnt, dim, radius):
 
         neighbors = []
-        closest_pnt = self.__nnsInRadius(self.data, pnt, dim, radius, neighbors)
+        self.__nnsInRadiusNaive(self.data, pnt, dim, radius, neighbors)
 
-        return reshape(array(neighbors), (len(neighbors), dim + 1))
+        neighbors = vstack(neighbors)
+        dist = sqDist(pnt, neighbors)
+        return neighbors[dist < radius * radius, :]
+        # return reshape(array(neighbors), (len(neighbors), dim + 1))
 
     # ---------------------- Private methods ----------------------
     def __constructKDTree(self, pts, dim, depth=0):
 
         n = len(pts)
-        if n <= 0:
-            return None
+        axis = depth % dim  # getting axis by which we divide the points (0 - x, 1 - y)
+        sorted_pts = pts[argsort(pts[:, axis])]
 
+        if n <= 10:
+            return [None,
+                    None,
+                    sorted_pts, None]
         else:
-            axis = depth % dim  # getting axis by which we divide the points (0 - x, 1 - y)
-            sorted_pts = pts[argsort(pts[:, axis])]
-
             return [self.__constructKDTree(sorted_pts[:n // 2], dim, depth + 1),
-                    self.__constructKDTree(sorted_pts[n // 2 + 1:], dim, depth + 1),
-                    sorted_pts[n // 2]]
+                    self.__constructKDTree(sorted_pts[n // 2:], dim, depth + 1),
+                    None, sorted_pts[n // 2][axis]]
 
     def __sqDist(self, p1, p2):
         """
@@ -52,23 +57,23 @@ class KDTree:
         if p1 is None:
             # d = self.__sqDist(pivot, reshape(array(p2), (len(pivot))))
             # if d < radius * radius:
-              #   neighbors.append(p2)
+            #   neighbors.append(p2)
             return p2
 
         if p2 is None:
             # d = self.__sqDist(pivot, reshape(array(p1), (len(pivot))))
             # if d < radius * radius:
-              #  neighbors.append(p1)
+            #  neighbors.append(p1)
             return p1
 
         d1 = self.__sqDist(pivot, reshape(array(p1), (len(pivot))))
         d2 = self.__sqDist(pivot, reshape(array(p2), (len(pivot))))
 
-        #if d1 < radius * radius:
-         #   neighbors.append(p1)
+        # if d1 < radius * radius:
+        #   neighbors.append(p1)
 
-        #if d2 < radius * radius:
-         #   neighbors.append(p2)
+        # if d2 < radius * radius:
+        #   neighbors.append(p2)
 
         if d1 < d2:
             return p1
@@ -77,24 +82,36 @@ class KDTree:
 
     def __nnsInRadiusNaive(self, data, pnt, dim, radius, neighbors, depth=0):
 
-        if data is None:  # check to see if child is empty
-            return neighbors
-
         axis = depth % dim
+
+        if data[0] is None:  # if data is leaf
+            neighbors.append(data[2])
+            return
 
         next_branch = None
 
-        dist = self.__sqDist(pnt, data[2])
+        # dist = self.__sqDist(pnt, data[2])
 
-        if dist < radius * radius:
-            neighbors.append(data[2])
-
+        # if dist < radius * radius:
+        # neighbors.append(data[2])
+        """
         if pnt[axis] < data[2][axis]:
             next_branch = data[0]
         else:
             next_branch = data[1]
+        """
+        # if pnt[axis] < data[2][axis]:
+        #   if (data[2][axis] - pnt[axis]) ** 2 < radius * radius:
 
-        return self.__nnsInRadiusNaive(next_branch, pnt, dim, radius, neighbors, depth + 1)
+        if data[3] - pnt[axis] >= radius:
+            return self.__nnsInRadiusNaive(data[0], pnt, dim, radius, neighbors, depth + 1)
+        elif -(data[3] - pnt[axis]) > radius:
+            return self.__nnsInRadiusNaive(data[1], pnt, dim, radius, neighbors, depth + 1)
+        else:
+            return self.__nnsInRadiusNaive(data[0], pnt, dim, radius, neighbors, depth + 1), self.__nnsInRadiusNaive(
+                data[1], pnt, dim, radius, neighbors, depth + 1)
+
+        # return self.__nnsInRadiusNaive(data[0], pnt, dim, radius, neighbors, depth + 1), self.__nnsInRadiusNaive(data[1], pnt, dim, radius, neighbors, depth + 1)
 
     def __nnsInRadius(self, data, pnt, dim, radius, neighbors, depth=0):
         """
@@ -124,8 +141,8 @@ class KDTree:
         best = self.__closerDist(pnt, self.__nnsInRadius(next_branch, pnt, dim, radius, neighbors, depth + 1), data[2],
                                  radius, neighbors)
 
-        #if self.__sqDist(pnt, best) > (pnt[axis] - data[2][axis]) ** 2:
-        if (pnt[axis] - data[2][axis]) ** 2 > radius * radius:
+        # if self.__sqDist(pnt, best) > (pnt[axis] - data[2][axis]) ** 2:
+        if (pnt[axis] - data[2][axis]) ** 2 < radius * radius:
             best = self.__closerDist(pnt, self.__nnsInRadius(opposite_branch, pnt, dim, radius, neighbors, depth + 1),
                                      best, radius, neighbors)
 
