@@ -24,7 +24,9 @@ class PointCloud:
         self.pts = None
 
     def initializeData(self):
-
+        """
+        getting user input, obtaining cloud point data and storing in a PointCloud object
+        """
         point3Dfiles = askopenfilenames(title='Select Input File')
 
         temp_points = []
@@ -45,7 +47,9 @@ class PointCloud:
         self.pts = vstack(temp_points)
 
     def drawPointCloud(self):
-
+        """
+        drawing the cloud of points in white with vtk
+        """
         # Initialize VTK points object
         vtkPnt = vtk.vtkPoints()
         # Initialize color scalars
@@ -110,11 +114,10 @@ class PointCloud:
 
     def drawFilteredPointCloud(self, objects, terrain, flag='all'):
         """
-
-        :param objects:
-        :param terrain:
-        :param flag:
-        :return:
+        drawing cloud of points after classification to terrain and objects
+        :param objects: points classified as objects
+        :param terrain: points classified as terrain
+        :param flag: draw 'all', 'object' only or 'terrain' only
         """
         # Initialize VTK points object
         vtkPnt = vtk.vtkPoints()
