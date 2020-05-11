@@ -23,6 +23,7 @@ class GeoEqualCells:
 
     @property
     def Borders(self):
+        """bounding rectangle [xmax,ymax,xmin,ymin]"""
         return self.__borders
 
     @property
@@ -43,6 +44,7 @@ class GeoEqualCells:
 
     @property
     def CellsN(self):
+        """number of cells"""
         return self.Points.shape[0] // self.__avgN
 
     @property
@@ -64,23 +66,16 @@ class GeoEqualCells:
     def initializeGeoEqualCells(self, points, avgN, ratio):
         self.__avgN = avgN
         self.__points = points
-        # finding bounding rectangle
-        self.__borders = self.findBorders()
-        # calculating number of cells
-        cellsN = self.CellsN
-        # calculating area of cell
-        cellArea = self.Area / cellsN
-        # calculate edges of cell
         self.__ratio = ratio
-        cellLy = self.CellLy
-        cellLx = self.CellLx
-        # number of cells in each edge of the grid
-        cellsNx = self.CellsNx
-        cellsNy = self.CellsNy
-        # create cells
-        self.__cells = self.createGrid(cellsNx, cellsNy)
-        # populates the cells with points according to their coordinates
+        self.__cells = self.createGrid()
         self.populateCells()
+        # calculating area of cell
+        # cellArea = self.Area / self.CellsN
+        # calculate edges of cell
+        # number of cells in each edge of the grid
+        # create cells
+        # populates the cells with points according to their coordinates
+
 
     def findBorders(self):
         """finds bounding rectangle"""
@@ -100,12 +95,12 @@ class GeoEqualCells:
 
         return np.array([xmax, ymax, xmin, ymin])
 
-    def createGrid(self, cellsNx, cellsNy):
+    def createGrid(self):
         """creates geographic grid of cells"""
         geoGrid = []
-        for i in range(int(cellsNy)):
-            for j in range(int(cellsNx)):
-                geoGrid.append(GeoGridCell(i * cellsNx + j))
+        for i in range(int(self.CellsNy)):
+            for j in range(int(self.CellsNx)):
+                geoGrid.append(GeoGridCell(i * self.CellsNx + j))
         return geoGrid
 
     def populateCells(self):
@@ -114,12 +109,15 @@ class GeoEqualCells:
             self.Cells[self.findInd(p)].append(p)
 
     def findPointsInRadius(self, p, radius):
+        """ finding all the points inside the given radius from the given point"""
+        # finding coordinates bounding box for the radius
         borders = self.findBordersbyRadius(p, radius)
         # in case radius exceeds grid boundary
         if borders[0] > self.Borders[0]: borders[0] = self.Borders[0]
         if borders[1] > self.Borders[1]: borders[1] = self.Borders[1]
         if borders[2] < self.Borders[2]: borders[2] = self.Borders[2]
         if borders[3] < self.Borders[3]: borders[3] = self.Borders[3]
+        # finding cells in the bounding box
         minCell = self.findInd(np.array([borders[2], borders[3]]))
         maxCell = self.findInd(np.array([borders[0], borders[1]]))
         minRow = minCell // self.CellsNx
@@ -134,20 +132,14 @@ class GeoEqualCells:
 
         # extracting all the points from the cells in the radius
         pointsToCheck = np.vstack([x for x in map(self.addPoints, indices) if x is not None])
-        # pointsToCheck= np.vstack(list(map(self.addPoints,indices)))
-        # for i in indices:
-        #     if self.Cells[i].Points.size == 0:
-        #         continue
-        #     pointsToCheck = np.vstack((pointsToCheck, self.Cells[i].Points))
-        # pointsToCheck = pointsToCheck[1:, :]
+        # searching for points in the radius
         distances = sqDist(p, pointsToCheck)
         pointsInRadius = pointsToCheck[distances < radius ** 2, :]
-
-        pointsInRadius = pointsInRadius[1:, :]
 
         return pointsInRadius
 
     def addPoints(self,ind):
+        """extracting points from cell"""
         if self.Cells[ind].Points.size == 0:
             return None
         return self.Cells[ind].Points
@@ -157,6 +149,16 @@ class GeoEqualCells:
         return int((p[0] - self.Borders[2]) // self.CellLx + ((p[1] - self.Borders[3]) // self.CellLy) * self.CellsNx)
 
     def classifyPoints(self, radius, threshold):
+        """
+        classify points claude to object and terrain points by slope filter
+        :param radius: radius from point to check
+        :param threshold: maximal slope value between terrain points [deg]
+        :return: object points and terrain points
+
+        :type radius: float
+        :type threshold: float
+        :rtype: list[mX3],list[kX3]
+        """
         terrain = []
         objects = []
         for i, p in enumerate(self.Points):
