@@ -2,7 +2,6 @@ from KDTree import *
 from PointCloud import *
 from GeoEqualCells import *
 from utils import *
-from numpy import array, argsort, deg2rad, arctan
 import time
 
 
@@ -12,11 +11,12 @@ def naiveSearch(radius, threshold, cloud):
     :param radius: search radius
     :param threshold: threshold slope between 2 points
     :param cloud: cloud of points
-    :return:
 
     :type radius: float
     :type: threshold: deg
     :type: cloud: array nX3
+
+    :return: classified cloud of points to terrain and object
     """
     start = time.time()
     terrain = []
@@ -39,6 +39,20 @@ def naiveSearch(radius, threshold, cloud):
 
 
 def KDTreeSearch(radius, threshold, cloud, kdtree):
+    """
+    performs a KDTree NNS across cloud of points to apply the morphological filter
+    :param radius: search radius
+    :param threshold: threshold slope between 2 points
+    :param cloud: cloud of points
+    :param kdtree: KDTree dataa structure containing cloud of points
+
+    :type radius: float
+    :type threshold: deg
+    :type cloud: array nX3
+    :type kdtree: KDTree()
+
+    :return: classified cloud of points to terrain and object
+    """
     start = time.time()
     terrain = []
     objects = []
@@ -65,7 +79,7 @@ def classifyPointCloud(radius, threshold, method):
     :type threshold: deg
     :type method: string
 
-    :return:
+    :return: wrapper method - choose a way of searching and get results
     """
     cloud = PointCloud()
     cloud.initializeData()
@@ -104,10 +118,10 @@ def drawClassification(terrain, objects, rtime, flag):
     :return: void
     """
     c = PointCloud()
-    c.drawFilteredPointCloud(objects, terrain, flag)
     print('Classification took ', rtime, 'seconds')
+    c.drawFilteredPointCloud(objects, terrain, flag)
 
 
 if __name__ == '__main__':
-    terrain, objects, rtime = classifyPointCloud(5, 65, 'KDTree')
-    drawClassification(terrain, objects, rtime, 'terrain')
+    terrain, objects, rtime = classifyPointCloud(0.5, 15, 'KDTree')
+    drawClassification(terrain, objects, rtime, 'all')
