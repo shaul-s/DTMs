@@ -3,7 +3,7 @@ from PointCloud import *
 from GeoEqualCells import *
 from utils import *
 import time
-
+from numpy import array, argsort, deg2rad, arctan
 
 def naiveSearch(radius, threshold, cloud):
     """
@@ -68,7 +68,7 @@ def KDTreeSearch(radius, threshold, cloud, kdtree):
     return terrain, objects, end - start
 
 
-def classifyPointCloud(radius, threshold, method):
+def classifyPointCloud(radius, threshold, method, cloud, dataBase):
     """
 
     :param radius: search radius
@@ -81,8 +81,8 @@ def classifyPointCloud(radius, threshold, method):
 
     :return: wrapper method - choose a way of searching and get results
     """
-    cloud = PointCloud()
-    cloud.initializeData()
+    # cloud = PointCloud()
+    # cloud.initializeData()
 
     if method == 'KDTree':
         kdtree = KDTree()
@@ -93,16 +93,16 @@ def classifyPointCloud(radius, threshold, method):
         return naiveSearch(radius, threshold, cloud.pts)
 
     elif method == 'EqualCells':
-        g = GeoEqualCells()
-        g.initializeGeoEqualCells(cloud.pts, 100, [1, 1])
+        # g = GeoEqualCells()
+        # g.initializeGeoEqualCells(cloud.pts, 10, [1, 1])
         # terrain, objects, rtime = g.classifyPoints(radius, threshold)
-        return g.classifyPoints(radius, threshold)
+        return dataBase.classifyPoints(radius, threshold)
 
     else:
         return print('method needs to be of the following: Naive, EqualCells or KDTree')
 
 
-def drawClassification(terrain, objects, rtime, flag):
+def drawClassification(terrain, objects, rtime, flag, runNumber):
     """
 
     :param terrain: terrain cloud of points
@@ -119,9 +119,20 @@ def drawClassification(terrain, objects, rtime, flag):
     """
     c = PointCloud()
     print('Classification took ', rtime, 'seconds')
-    c.drawFilteredPointCloud(objects, terrain, flag)
+    print('terrain points: ', len(terrain),' %: ',len(terrain)/(len(terrain)+len(objects)))
+    print('object points: ', len(objects),' %: ',len(objects)/(len(terrain)+len(objects)))
+    c.drawFilteredPointCloud(objects, terrain, flag, runNumber=runNumber)
 
 
 if __name__ == '__main__':
-    terrain, objects, rtime = classifyPointCloud(0.5, 15, 'KDTree')
-    drawClassification(terrain, objects, rtime, 'all')
+    cloud = PointCloud()
+    cloud.initializeData()
+    # cloud.pts = cloud.pts[argsort(cloud.pts[:, 0])]
+    g = GeoEqualCells()
+    g.initializeGeoEqualCells(cloud.pts, 10, [1, 1])
+    radius = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0]
+    threshold = [15, 15, 15, 15, 65, 65, 65, 65]
+    for i, r in enumerate(radius):
+        terrain, objects, rtime = classifyPointCloud(radius[i], threshold[i], 'EqualCells', cloud, g)
+        print('run number ', str(i))
+        drawClassification(terrain, objects, rtime, 'all',i+1)

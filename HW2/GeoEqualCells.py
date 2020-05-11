@@ -5,13 +5,13 @@ import time
 
 class GeoEqualCells:
     def __init__(self):
-        self.__avgN = None
-        self.__ratio = None
-        self.__cells = None
-        self.__borders = None
-        self.__area = None
-        self.__pointsN = None
-        self.__points = None
+        self.__avgN = None  # [int]
+        self.__ratio = None  # [dx:dy]
+        self.__cells = None  # list of GeoGridCell kX1
+        self.__borders = None  # array 1X4
+        self.__area = None  # float
+        self.__pointsN = None  # [int]
+        self.__points = None  # array nX3
 
     @property
     def Cells(self):
@@ -57,28 +57,30 @@ class GeoEqualCells:
 
     @property
     def CellsNx(self):
+        """number of cells along x axis"""
         return self.Lx // self.CellLx + 1
 
     @property
     def CellsNy(self):
+        """number of cells along y axis"""
         return self.Ly // self.CellLy + 1
 
     def initializeGeoEqualCells(self, points, avgN, ratio):
         self.__avgN = avgN
         self.__points = points
         self.__ratio = ratio
-        self.__cells = self.createGrid()
-        self.populateCells()
-        # calculating area of cell
-        # cellArea = self.Area / self.CellsN
-        # calculate edges of cell
-        # number of cells in each edge of the grid
+        # finding bounding rectangle
+        self.__borders = self.findBorders()
         # create cells
+        self.__cells = self.createGrid()
         # populates the cells with points according to their coordinates
+        self.populateCells()
+
+
 
 
     def findBorders(self):
-        """finds bounding rectangle"""
+        """finds bounding rectangle [xmax,ymax,xmin,ymin] """
         xmax = np.max(self.Points[:, 0])
         ymax = np.max(self.Points[:, 1])
         xmin = np.min(self.Points[:, 0])
@@ -110,7 +112,7 @@ class GeoEqualCells:
 
     def findPointsInRadius(self, p, radius):
         """ finding all the points inside the given radius from the given point"""
-        # finding coordinates bounding box for the radius
+        # finding coordinates of radius bounding box
         borders = self.findBordersbyRadius(p, radius)
         # in case radius exceeds grid boundary
         if borders[0] > self.Borders[0]: borders[0] = self.Borders[0]
@@ -127,8 +129,8 @@ class GeoEqualCells:
 
         # searching points inside the radius only in relevant cells
         indices = np.arange(len(self.Cells))
-        indices = indices[(indices // self.CellsNx <= maxRow) * (indices // self.CellsNx > minRow)
-                          * (indices % self.CellsNx <= maxCol) * (indices % self.CellsNx > minCol)]
+        indices = indices[(indices // self.CellsNx <= maxRow) * (indices // self.CellsNx >= minRow)
+                          * (indices % self.CellsNx <= maxCol) * (indices % self.CellsNx >= minCol)]
 
         # extracting all the points from the cells in the radius
         pointsToCheck = np.vstack([x for x in map(self.addPoints, indices) if x is not None])
@@ -159,17 +161,21 @@ class GeoEqualCells:
         :type threshold: float
         :rtype: list[mX3],list[kX3]
         """
+        start = time.time()
         terrain = []
         objects = []
         for i, p in enumerate(self.Points):
             pointsInRadius = self.findPointsInRadius(p, radius)
+            if pointsInRadius.size <= 3:
+                terrain.append(p)
+                continue
             # checking if a point is object or terrain
             if isObject(p, pointsInRadius, threshold):
                 objects.append(p)
             else:
                 terrain.append(p)
-
-        return terrain, objects
+        end = time.time()
+        return terrain, objects, end-start
 
 
 if __name__ == '__main__':

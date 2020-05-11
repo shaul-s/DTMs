@@ -27,6 +27,8 @@ def computeSlope(p, points):
     :param q: point3D
     :return: slope
     """
+    if points.size <= 3:
+        return 0
     return (points[:,2] - p[2]) / distanceVector(p, points)
 
 
@@ -51,8 +53,8 @@ def sqDist(p, cloud):
     :return: float squared distance between two points
     """
     if cloud.size <= 3:
-        diffx = cloud[0] - p[0]
-        diffy = cloud[1] - p[1]
+        diffx = cloud[0,0] - p[0]
+        diffy = cloud[0,1] - p[1]
         return diffx ** 2 + diffy ** 2
     diffx = cloud[:,0] - p[0]
     diffy = cloud[:,1] - p[1]
