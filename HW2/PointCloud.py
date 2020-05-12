@@ -218,7 +218,7 @@ class PointCloud:
         interactor.SetRenderWindow(vtkRenderWindow)
         vtkRenderWindow.Render()
         WriteImage('output'+str(runNumber), vtkRenderWindow,rgba=False )
-        # interactor.Start()
+        interactor.Start()
 
 
         # writer = vtk.vtkUnstructuredGridWriter()

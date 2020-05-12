@@ -58,6 +58,9 @@ def KDTreeSearch(radius, threshold, cloud, kdtree):
     objects = []
     for p in cloud:
         pointsInRadius = kdtree.nnsInRadius(p, cloud.shape[1] - 1, radius)
+        if pointsInRadius.size <= 3:  # no points in radius
+            terrain.append(p)
+            continue
         if isObject(p, pointsInRadius, threshold):
             objects.append(p)
         else:
@@ -68,7 +71,7 @@ def KDTreeSearch(radius, threshold, cloud, kdtree):
     return terrain, objects, end - start
 
 
-def classifyPointCloud(radius, threshold, method, cloud, dataBase):
+def classifyPointCloud(radius, threshold, method):
     """
 
     :param radius: search radius
@@ -81,8 +84,8 @@ def classifyPointCloud(radius, threshold, method, cloud, dataBase):
 
     :return: wrapper method - choose a way of searching and get results
     """
-    # cloud = PointCloud()
-    # cloud.initializeData()
+    cloud = PointCloud()
+    cloud.initializeData()
 
     if method == 'KDTree':
         kdtree = KDTree()
@@ -93,16 +96,16 @@ def classifyPointCloud(radius, threshold, method, cloud, dataBase):
         return naiveSearch(radius, threshold, cloud.pts)
 
     elif method == 'EqualCells':
-        # g = GeoEqualCells()
-        # g.initializeGeoEqualCells(cloud.pts, 10, [1, 1])
+        g = GeoEqualCells()
+        g.initializeGeoEqualCells(cloud.pts, 10, [1, 1])
         # terrain, objects, rtime = g.classifyPoints(radius, threshold)
-        return dataBase.classifyPoints(radius, threshold)
+        return g.classifyPoints(radius, threshold)
 
     else:
         return print('method needs to be of the following: Naive, EqualCells or KDTree')
 
 
-def drawClassification(terrain, objects, rtime, flag, runNumber):
+def drawClassification(terrain, objects, rtime, flag, runNumber=1):
     """
 
     :param terrain: terrain cloud of points
@@ -125,14 +128,17 @@ def drawClassification(terrain, objects, rtime, flag, runNumber):
 
 
 if __name__ == '__main__':
-    cloud = PointCloud()
-    cloud.initializeData()
-    # cloud.pts = cloud.pts[argsort(cloud.pts[:, 0])]
-    g = GeoEqualCells()
-    g.initializeGeoEqualCells(cloud.pts, 10, [1, 1])
-    radius = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0]
-    threshold = [15, 15, 15, 15, 65, 65, 65, 65]
-    for i, r in enumerate(radius):
-        terrain, objects, rtime = classifyPointCloud(radius[i], threshold[i], 'EqualCells', cloud, g)
-        print('run number ', str(i))
-        drawClassification(terrain, objects, rtime, 'all',i+1)
+    # cloud = PointCloud()
+    # cloud.initializeData()
+    # # kdtree = KDTree()
+    # kdtree.initializeKDTree(cloud.pts, cloud.pts.shape[1] - 1)
+    # g = GeoEqualCells()
+    # g.initializeGeoEqualCells(cloud.pts, 10, [1, 1])
+    # radius = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0]
+    # threshold = [15, 15, 15, 15, 65, 65, 65, 65]
+    # for i, r in enumerate(radius[5:]):
+    #     terrain, objects, rtime = classifyPointCloud(radius[i], threshold[i], 'EqualCells', cloud, g)
+    #     print('run number ', str(i))
+    #     drawClassification(terrain, objects, rtime, 'all',i+1)
+    terrain, objects, rtime = classifyPointCloud(3, 65, 'KDTree')
+    drawClassification(terrain, objects, rtime, 'all')
