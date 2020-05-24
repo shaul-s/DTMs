@@ -1,12 +1,12 @@
-from numpy import vstack
+import numpy as np
 from Point3D import *
 
 
 class Triangle:
 
     def __init__(self,p1,p2,p3):
-        self.__points = vstack((p1,p2,p3))
-        self.__neighbors = None
+        self.__points = np.vstack((p1,p2,p3))
+        self.__neighbors = []
 
     @property
     def Points(self):
@@ -14,19 +14,27 @@ class Triangle:
         return self.__points
 
     @property
-    def Edges(self):
-        return np.array([[self.Points[1]]])
+    def Neighbors(self):
+        return self.__neighbors
+    # @Neighbors.setter
+    # def Neighbors(self,val):
+    
+    def circumcenter(self):
+        """Compute bounding circle of a triangle in 2D"""
+        
+        # self.Points = np.asarray([self.coords[v] for v in tri])
+        pts2 = np.dot(self.Points, self.Points.T)
+        A = np.bmat([[2 * pts2, [[1],
+                                 [1],
+                                 [1]]],
+                      [[[1, 1, 1, 0]]]])
 
-    def contains(self, p):
-        """
-        return whether the point inside or outside the polygon
+        b = np.hstack((np.sum(self.Points * self.Points, axis=1), [1]))
+        x = np.linalg.solve(A, b)
+        bary_coords = x[:-1]
+        center = np.dot(bary_coords, self.Points)
 
-        """
-        count = 0
-        for i in range(3):
-            if ray_intersect_polygon(p, self.Points):
-                count += 1
-        if count % 2 == 1:
-            return True
-        else:
-            return False
+        # radius = np.linalg.norm(self.Points[0] - center) # euclidean distance
+        radius = np.sum(np.square(self.Points[0] - center))  # squared distance
+        return (center, radius)
+
