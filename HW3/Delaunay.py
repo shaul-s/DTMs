@@ -14,6 +14,7 @@ class Delaunay:
         """
         self.__triangles = []
         self.__pointId = 0
+        self.__triangleId = 0
 
         # create big triangle
         # centerX = np.average(points[:,0])
@@ -40,6 +41,15 @@ class Delaunay:
     def PointId(self,val):
         self.__pointId = val
 
+    @property
+    def TriangleId(self):
+        return self.__triangleId
+
+    @TriangleId.setter
+    def TriangleId(self,val):
+        self.__triangleId = val
+
+
 
     def insertPoint(self, p):
         """
@@ -53,9 +63,12 @@ class Delaunay:
         # find the triangle that contains the point
         T = self.findTriangle(p)
         # divide to three triangles
-        t1 = Triangle(T.Points[0],T.Points[1],p)
-        t2 = Triangle(T.Points[1],T.Points[2],p)
-        t3 = Triangle(T.Points[2],T.Points[0],p)
+        t1 = Triangle(T.Points[0],T.Points[1],p,self.TriangleId)
+        self.TriangleId += 1
+        t2 = Triangle(T.Points[1],T.Points[2],p,self.TriangleId)
+        self.TriangleId += 1
+        t3 = Triangle(T.Points[2],T.Points[0],p,self.TriangleId)
+        self.TriangleId += 1
 
         # insert neighbors
 
@@ -73,11 +86,12 @@ class Delaunay:
         del self.Triangles[self.Triangles.index(T)]
         self.Triangles.extend([t1,t2,t3])
 
+        self.plotTriangulation()
         # check the empty circle property
         for i,t in enumerate([t1,t2,t3]):
-            if isInsideCircle(t.Neighbors[0],p):
-                farPoint = np.setdiff1d(t.Neighbors[0].Points[:,3],t.Points[:,3])
-                # flip
+            if t.Neighbors[0] is not None:
+                self.legalizeEdge(p,t,t.Neighbors[0])
+
 
 
 
@@ -91,15 +105,56 @@ class Delaunay:
     def plotTriangulation(self):
         for t in self.Triangles:
             plt.plot(t.Points[:,0], t.Points[:,1], 'bo-', linewidth=0.4, markersize=1)
+            plt.annotate(t.ID, (np.average(t.Points[:,0]), np.average(t.Points[:,1])))
             for p in t.Points:
                 plt.annotate(p[3], (p[0], p[1]))
         plt.show()
 
-    def legalizeEdge(self,p, tri, opositTriangle):
+    def legalizeEdge(self, p, tri, opositTriangle):
         """flipping triangulation of 4 edge polygon  """
-        if isInsideCircle(opositTriangle, p):
-            opositTriangle[~np.in1d(opositTriangle, tri)]
-            # farPoint = np.setdiff1d(t.Neighbors[0].Points[:, 3], t.Points[:, 3])
+
+        if opositTriangle is not None:
+            self.plotTriangulation()
+            if isInsideCircle(opositTriangle, p):
+                # building the two triangles the flip made
+                farPointInd = np.argmin(np.in1d(opositTriangle.Points[:,3], tri.Points[:,3]))
+                newTriangle1 = Triangle(opositTriangle.Points[farPointInd],
+                                        opositTriangle.Points[(farPointInd+1) % 3],p,self.TriangleId)
+                self.TriangleId += 1
+                newTriangle2 = Triangle(opositTriangle.Points[(farPointInd - 1) % 3],
+                                        opositTriangle.Points[farPointInd],p,self.TriangleId)
+                self.TriangleId += 1
+                # populate neighbors
+                del tri.Neighbors[tri.Neighbors.index(opositTriangle)]
+                neighbor1 = newTriangle1.findNeighbor(opositTriangle.Neighbors)
+                if neighbor1 is not None:
+                    neighbor1.Neighbors[neighbor1.Neighbors.index(opositTriangle)] = newTriangle1
+                neighbor2 = newTriangle1.findNeighbor(tri.Neighbors)
+                if neighbor2 is not None:
+                    neighbor2.Neighbors[neighbor2.Neighbors.index(tri)] = newTriangle1
+                neighbor3 = newTriangle2
+                newTriangle1.Neighbors.extend([neighbor1,neighbor2,neighbor3])
+                del opositTriangle.Neighbors[opositTriangle.Neighbors.index(tri)]
+                neighbor1 = newTriangle2.findNeighbor(opositTriangle.Neighbors)
+                if neighbor1 is not None:
+                    neighbor1.Neighbors[neighbor1.Neighbors.index(opositTriangle)] = newTriangle2
+                neighbor2 = newTriangle1
+                neighbor3 = newTriangle2.findNeighbor(tri.Neighbors)
+                if neighbor3 is not None:
+                    neighbor3.Neighbors[neighbor3.Neighbors.index(tri)] = newTriangle2
+                newTriangle2.Neighbors.extend([neighbor1, neighbor2, neighbor3])
+
+                self.Triangles.extend((newTriangle1,newTriangle2))
+                # delete changed triangles
+                del self.Triangles[self.Triangles.index(tri)]
+                del self.Triangles[self.Triangles.index(opositTriangle)]
+
+                # continue until all edge are legal
+                self.legalizeEdge(p, newTriangle1, newTriangle1.Neighbors[0])
+                self.legalizeEdge(p, newTriangle2, newTriangle2.Neighbors[0])
+
+
+
 
 if __name__ == '__main__':
     p1 = np.array([1,1,1])

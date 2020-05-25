@@ -4,14 +4,22 @@ from Point3D import *
 
 class Triangle:
 
-    def __init__(self,p1,p2,p3):
+    def __init__(self,p1,p2,p3,ID=0):
         self.__points = np.vstack((p1,p2,p3))
         self.__neighbors = []
+        self.__id = ID
 
     @property
     def Points(self):
-
         return self.__points
+
+    @property
+    def ID(self):
+        return self.__id
+
+    @ID.setter
+    def ID(self,val):
+        self.__id = val
 
     @property
     def Neighbors(self):
@@ -37,4 +45,13 @@ class Triangle:
         # radius = np.linalg.norm(self.Points[0] - center) # euclidean distance
         radius = np.sum(np.square(self.Points[0] - center))  # squared distance
         return center, radius
+
+    def findNeighbor(self, triangles):
+        """find neighbor in list of triangles"""
+
+        for t in triangles:
+            if t is not None:
+                if np.sum(np.in1d(t.Points[:, 3], self.Points[:, 3])) == 2:
+                    return t
+
 

@@ -18,9 +18,11 @@ def RightLeftCollinear(p1, p2, p3):
 def isInsideCircle(tri, p):
     """Check if point p is inside of circumcircle around the triangle tri"""
 
-    col1 = tri.Points[:,0]
-    col2 = tri.Points[:,1]
-    col3 = tri.Points[:,0]**2 + tri.Points[:,1]**2
-    col4 = np.ones((4,1))
-    m = np.hstack((col1,col2,col3,col4))
+    points = np.vstack((tri.Points,p))
+    col1 = points[:,0]
+    col2 = points[:,1]
+    col3 = points[:,0]**2 + points[:,1]**2
+    col4 = np.ones((4,1))[:,0]
+    m = np.vstack((col1,col2,col3,col4)).T
+    # m = np.vstack((m,np.hstack((p,1))))
     return np.linalg.det(m) > 0
