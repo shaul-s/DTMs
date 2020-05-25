@@ -13,6 +13,7 @@ class Delaunay:
         :param points: np.array
         """
         self.__triangles = []
+        self.__pointId = 0
 
         # create big triangle
         # centerX = np.average(points[:,0])
@@ -20,9 +21,9 @@ class Delaunay:
         # width = np.max(points[:,0]) - np.min(points[:,0])
         # height = np.max(points[:,1]) - np.min(points[:,1])
         # M = np.max([width,height])
-        p1 = np.array([centerX+3*M,centerY,0])
-        p2 = np.array([centerX,centerY+3*M,0])
-        p3 = np.array([centerX-3*M,centerY-3*M,0])
+        p1 = np.array([centerX+3*M,centerY,0,-1])
+        p2 = np.array([centerX,centerY+3*M,0,-2])
+        p3 = np.array([centerX-3*M,centerY-3*M,0,-3])
         T = Triangle(p1,p2,p3)
         T.Neighbors.extend([None,None,None])
         self.__triangles.append(T)
@@ -31,11 +32,24 @@ class Delaunay:
     def Triangles(self):
         return self.__triangles
 
+    @property
+    def PointId(self):
+        return self.__pointId
+
+    @PointId.setter
+    def PointId(self,val):
+        self.__pointId = val
+
+
     def insertPoint(self, p):
         """
         insert point into triangulation
         :type p: np.array 1X3
         """
+        # adding point id in the triangulation
+        p = np.hstack((p,self.PointId))
+        self.PointId += 1
+
         # find the triangle that contains the point
         T = self.findTriangle(p)
         # divide to three triangles
@@ -60,9 +74,11 @@ class Delaunay:
         self.Triangles.extend([t1,t2,t3])
 
         # check the empty circle property
-        for t in [t1,t2,t3]:
+        for i,t in enumerate([t1,t2,t3]):
             if isInsideCircle(t.Neighbors[0],p):
+                farPoint = np.setdiff1d(t.Neighbors[0].Points[:,3],t.Points[:,3])
                 # flip
+
 
 
     def findTriangle(self, p):
@@ -75,9 +91,15 @@ class Delaunay:
     def plotTriangulation(self):
         for t in self.Triangles:
             plt.plot(t.Points[:,0], t.Points[:,1], 'bo-', linewidth=0.4, markersize=1)
+            for p in t.Points:
+                plt.annotate(p[3], (p[0], p[1]))
         plt.show()
 
-    def flip(self):
+    def legalizeEdge(self,p, tri, opositTriangle):
+        """flipping triangulation of 4 edge polygon  """
+        if isInsideCircle(opositTriangle, p):
+            opositTriangle[~np.in1d(opositTriangle, tri)]
+            # farPoint = np.setdiff1d(t.Neighbors[0].Points[:, 3], t.Points[:, 3])
 
 if __name__ == '__main__':
     p1 = np.array([1,1,1])

@@ -20,7 +20,7 @@ class Triangle:
     # def Neighbors(self,val):
     
     def circumcenter(self):
-        """Compute bounding circle of a triangle in 2D"""
+        """Compute circumcenter  of a triangle in 2D"""
         
         # self.Points = np.asarray([self.coords[v] for v in tri])
         pts2 = np.dot(self.Points, self.Points.T)
@@ -36,5 +36,5 @@ class Triangle:
 
         # radius = np.linalg.norm(self.Points[0] - center) # euclidean distance
         radius = np.sum(np.square(self.Points[0] - center))  # squared distance
-        return (center, radius)
+        return center, radius
 
