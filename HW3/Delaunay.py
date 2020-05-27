@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 class Delaunay:
 
-    def __init__(self, centerX,centerY,M):
+    def __init__(self,points):
         """
         Delaunay triangulation
         :param points: np.array
@@ -17,21 +17,32 @@ class Delaunay:
         self.__triangleId = 0
 
         # create big triangle
-        # centerX = np.average(points[:,0])
-        # centerY = np.average(points[:,1])
-        # width = np.max(points[:,0]) - np.min(points[:,0])
-        # height = np.max(points[:,1]) - np.min(points[:,1])
-        # M = np.max([width,height])
+        centerX = np.average(points[:,0])
+        centerY = np.average(points[:,1])
+        width = np.max(points[:,0]) - np.min(points[:,0])
+        height = np.max(points[:,1]) - np.min(points[:,1])
+        M = np.max([width,height])
         p1 = np.array([centerX+3*M,centerY,0,-1])
         p2 = np.array([centerX,centerY+3*M,0,-2])
         p3 = np.array([centerX-3*M,centerY-3*M,0,-3])
         T = Triangle(p1,p2,p3)
-        T.Neighbors.extend([None,None,None])
+        T.Neighbors.extend([None,None,None])  # set external face to None
         self.__triangles.append(T)
+        # insert points to the triangulation
+        for i, p in enumerate(points):
+            self.insertPoint(p)
+            if i % 100 == 0:
+                print(i, 'points inserted')    # show progress
+
+        self.deleteOuterTriangles()
 
     @property
     def Triangles(self):
         return self.__triangles
+
+    @Triangles.setter
+    def Triangles(self,val):
+        self.__triangles = val
 
     @property
     def PointId(self):
@@ -63,6 +74,8 @@ class Delaunay:
         # find the triangle that contains the point
         T = self.findTriangle(p)
         # divide to three triangles
+        # keeps points order counterclockwise
+        # keeps neighbors order correspond to points order
         t1 = Triangle(T.Points[0],T.Points[1],p,self.TriangleId)
         self.TriangleId += 1
         t2 = Triangle(T.Points[1],T.Points[2],p,self.TriangleId)
@@ -71,11 +84,11 @@ class Delaunay:
         self.TriangleId += 1
 
         # insert neighbors
-
+        # self.plotTriangulation()
         t1.Neighbors.extend([T.Neighbors[0],t2,t3])
         if T.Neighbors[0] is not None:  # case of outer borders
             T.Neighbors[0].Neighbors[T.Neighbors[0].Neighbors.index(T)] = t1
-        t2.Neighbors.extend([T.Neighbors[1],t1,t3])
+        t2.Neighbors.extend([T.Neighbors[1],t3,t1])
         if T.Neighbors[1] is not None:
             T.Neighbors[1].Neighbors[T.Neighbors[1].Neighbors.index(T)] = t2
         t3.Neighbors.extend([T.Neighbors[2],t1,t2])
@@ -86,11 +99,13 @@ class Delaunay:
         del self.Triangles[self.Triangles.index(T)]
         self.Triangles.extend([t1,t2,t3])
 
-        self.plotTriangulation()
+
         # check the empty circle property
         for i,t in enumerate([t1,t2,t3]):
             if t.Neighbors[0] is not None:
                 self.legalizeEdge(p,t,t.Neighbors[0])
+
+
 
 
 
@@ -100,22 +115,25 @@ class Delaunay:
         for t in self.Triangles:
             poly = path.Path(t.Points[:,:2])
             if poly.contains_point(p):
+            # if t.contains(p):
                 return t
 
     def plotTriangulation(self):
         for t in self.Triangles:
-            plt.plot(t.Points[:,0], t.Points[:,1], 'bo-', linewidth=0.4, markersize=1)
-            plt.annotate(t.ID, (np.average(t.Points[:,0]), np.average(t.Points[:,1])))
-            for p in t.Points:
-                plt.annotate(p[3], (p[0], p[1]))
+            tempPoints = np.vstack((t.Points,t.Points[0]))
+            plt.plot(tempPoints[:,0], tempPoints[:,1], 'bo-', linewidth=0.4, markersize=1)
+            # plt.annotate(t.ID, (np.average(t.Points[:,0]), np.average(t.Points[:,1])))
+            # for p in t.Points:
+            #     plt.annotate(p[3], (p[0], p[1]))
         plt.show()
 
     def legalizeEdge(self, p, tri, opositTriangle):
         """flipping triangulation of 4 edge polygon  """
 
         if opositTriangle is not None:
-            self.plotTriangulation()
-            if isInsideCircle(opositTriangle, p):
+
+            if opositTriangle.isInsideCircle(p):
+                # self.plotTriangulation()
                 # building the two triangles the flip made
                 farPointInd = np.argmin(np.in1d(opositTriangle.Points[:,3], tri.Points[:,3]))
                 newTriangle1 = Triangle(opositTriangle.Points[farPointInd],
@@ -124,52 +142,77 @@ class Delaunay:
                 newTriangle2 = Triangle(opositTriangle.Points[(farPointInd - 1) % 3],
                                         opositTriangle.Points[farPointInd],p,self.TriangleId)
                 self.TriangleId += 1
-                # populate neighbors
-                del tri.Neighbors[tri.Neighbors.index(opositTriangle)]
-                neighbor1 = newTriangle1.findNeighbor(opositTriangle.Neighbors)
-                if neighbor1 is not None:
-                    neighbor1.Neighbors[neighbor1.Neighbors.index(opositTriangle)] = newTriangle1
-                neighbor2 = newTriangle1.findNeighbor(tri.Neighbors)
+
+                # populate neighbors and counter neighbors
+                # newTriangle1
+                neighbor1 = opositTriangle.Neighbors[farPointInd]
+                if neighbor1 is not None: # case of outer borders
+                    neighbor1.Neighbors[neighbor1.Neighbors.index(opositTriangle)] = newTriangle1   # populate oposit neighbor
+                neighbor2 = tri.Neighbors[(np.argmax(tri.Points[:,3] == p[3])-1) % 3]
                 if neighbor2 is not None:
                     neighbor2.Neighbors[neighbor2.Neighbors.index(tri)] = newTriangle1
                 neighbor3 = newTriangle2
-                newTriangle1.Neighbors.extend([neighbor1,neighbor2,neighbor3])
-                del opositTriangle.Neighbors[opositTriangle.Neighbors.index(tri)]
-                neighbor1 = newTriangle2.findNeighbor(opositTriangle.Neighbors)
-                if neighbor1 is not None:
+                newTriangle1.Neighbors.extend([neighbor1, neighbor2, neighbor3])
+
+                # newTriangle2
+                neighbor1 = opositTriangle.Neighbors[(farPointInd-1) % 3]
+                if neighbor1 is not None:  # case of outer borders
                     neighbor1.Neighbors[neighbor1.Neighbors.index(opositTriangle)] = newTriangle2
                 neighbor2 = newTriangle1
-                neighbor3 = newTriangle2.findNeighbor(tri.Neighbors)
+                neighbor3 = tri.Neighbors[np.argmax(tri.Points[:, 3] == p[3])]
                 if neighbor3 is not None:
                     neighbor3.Neighbors[neighbor3.Neighbors.index(tri)] = newTriangle2
                 newTriangle2.Neighbors.extend([neighbor1, neighbor2, neighbor3])
 
+                # adding the new triangles
                 self.Triangles.extend((newTriangle1,newTriangle2))
+
                 # delete changed triangles
                 del self.Triangles[self.Triangles.index(tri)]
                 del self.Triangles[self.Triangles.index(opositTriangle)]
-
+                # self.plotTriangulation()
                 # continue until all edge are legal
                 self.legalizeEdge(p, newTriangle1, newTriangle1.Neighbors[0])
                 self.legalizeEdge(p, newTriangle2, newTriangle2.Neighbors[0])
 
-
+    def deleteOuterTriangles(self):
+        outerTriangles = []
+        for i,t in enumerate(self.Triangles):
+            if np.sum(t.Points[:,3] < 0) > 0:  # means on of the points belong to the "big triangle"
+                outerTriangles.append(i)
+        self.Triangles = [i for j, i in enumerate(self.Triangles) if j not in outerTriangles]
 
 
 if __name__ == '__main__':
+
+    # filename = 'data2.xyz'
+    # temp_points = []
+    # try:
+    #     with open(filename) as file:
+    #         lines = file.readlines()
+    #         for line in lines:
+    #             line = line.split()
+    #             if len(line) < 3:
+    #                 continue
+    #             else:
+    #                 temp_points.append(np.array(line[0:3]).astype(float))
+    # except:
+    #     print('Oops! your file is not supported')
+    #
+    # points = np.vstack(temp_points)
     p1 = np.array([1,1,1])
     p2 = np.array([2,1,2])
     p3 = np.array([3,3,3])
-    points = np.vstack((p1,p2,p3))
-    centerX = np.average(points[:,0])
-    centerY = np.average(points[:,1])
-    width = np.max(points[:,0]) - np.min(points[:,0])
-    height = np.max(points[:,1]) - np.min(points[:,1])
-    M = np.max([width,height])
-    d = Delaunay(centerX,centerY,M)
-    for p in points:
-        d.insertPoint(p)
-        d.plotTriangulation()
+    # points = np.vstack((p1,p2,p3))
+    points = initializeData()
+    d = Delaunay(points)
 
+    # map(d.insertPoint,points)
+    # for i,p in enumerate(points):
+    #     d.insertPoint(p)
+    #     if i%100 == 0:
+    #         print(i, 'points inserted')
+
+    d.plotTriangulation()
     x=1
 
