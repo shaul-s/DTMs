@@ -115,7 +115,6 @@ class Delaunay:
         for t in self.Triangles:
             poly = path.Path(t.Points[:,:2])
             if poly.contains_point(p):
-            # if t.contains(p):
                 return t
 
     def plotTriangulation(self):
@@ -176,6 +175,7 @@ class Delaunay:
                 self.legalizeEdge(p, newTriangle2, newTriangle2.Neighbors[0])
 
     def deleteOuterTriangles(self):
+        """ deleting the triangles connected to the "big triangle" """
         outerTriangles = []
         for i,t in enumerate(self.Triangles):
             if np.sum(t.Points[:,3] < 0) > 0:  # means on of the points belong to the "big triangle"
@@ -185,34 +185,9 @@ class Delaunay:
 
 if __name__ == '__main__':
 
-    # filename = 'data2.xyz'
-    # temp_points = []
-    # try:
-    #     with open(filename) as file:
-    #         lines = file.readlines()
-    #         for line in lines:
-    #             line = line.split()
-    #             if len(line) < 3:
-    #                 continue
-    #             else:
-    #                 temp_points.append(np.array(line[0:3]).astype(float))
-    # except:
-    #     print('Oops! your file is not supported')
-    #
-    # points = np.vstack(temp_points)
-    p1 = np.array([1,1,1])
-    p2 = np.array([2,1,2])
-    p3 = np.array([3,3,3])
-    # points = np.vstack((p1,p2,p3))
+
     points = initializeData()
     d = Delaunay(points)
-
-    # map(d.insertPoint,points)
-    # for i,p in enumerate(points):
-    #     d.insertPoint(p)
-    #     if i%100 == 0:
-    #         print(i, 'points inserted')
-
     d.plotTriangulation()
-    x=1
+
 
