@@ -110,7 +110,7 @@ if __name__ == '__main__':
     points = initializeData()
     d = Delaunay(points)
     # define point 'p' for height interpolation
-    p = np.array([11., 118.])
+    p = np.array([1., 121.5])
     # check if any triangle in the triangulation contains point 'p'
     isIn = []
     for t in d.Triangles:
@@ -119,7 +119,6 @@ if __name__ == '__main__':
     # if the returned list has no members - program cannot interpolate height
     if not len(isIn):
         print('we cannot interpolate height, the point is not in the triangulation')
-
     # if the returned list has more than 2 members -
     # the point is a triangle point and therefore already has a known height
     elif len(isIn) > 2:
@@ -128,5 +127,6 @@ if __name__ == '__main__':
     # if the returned list has 1 or 2 members - we interpolate it's height
     else:
         point_height = interpolateHeight(isIn, p)
+        print(point_height)
 
-    print(point_height)
+
