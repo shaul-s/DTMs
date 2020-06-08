@@ -173,12 +173,13 @@ class Delaunay:
         for i, t in enumerate(self.Triangles):
             if np.sum(t.Points[:, 3] < 0) > 0:  # means on of the points belong to the "big triangle"
                 outerTriangles.append(i)
+                # remove redundant neighbors from triangulation
                 for tri in t.Neighbors:
                     if tri is not None:
                         for j, tri_neighbor in enumerate(tri.Neighbors):
                             if tri_neighbor is not None:
                                 if tri_neighbor.ID == self.Triangles[i].ID:
-                                    del tri.Neighbors[j]
+                                    tri.Neighbors[j] = None
 
         self.Triangles = [i for j, i in enumerate(self.Triangles) if j not in outerTriangles]
 

@@ -1,5 +1,18 @@
 import numpy as np
+from matplotlib import pyplot as plt
 from HW3.Delaunay import *
+
+
+def convexHull(d):
+    """
+    return convex hull of a given 'd', delaunay triangulation
+    """
+    convex = []
+    for t in d.Triangles:
+        if None in t.Neighbors:
+            convex.append(t.Edges[t.Neighbors.index(None)])
+
+    return np.vstack(convex)
 
 
 def isInsideTriangle(t, p):
@@ -83,7 +96,8 @@ def interpolateHeight(t, p):
     points = []
     for tri in t:
         for neighbor in tri.Neighbors:
-            points.append(neighbor.Points)
+            if neighbor is not None:
+                points.append(neighbor.Points)
 
     # sorting and arranging points, also subtracting the centroid to avoid numeric problems
     points = np.unique(np.vstack(points), axis=0)[:, 0:3]
@@ -129,4 +143,11 @@ if __name__ == '__main__':
         point_height = interpolateHeight(isIn, p)
         print(point_height)
 
+    # compute convex of triangulation
+    ch = convexHull(d)
+    # ch = ch.sort()
+    plt.scatter(ch[:, 0], ch[:, 1], color='r')
+    d.plotTriangulation()
+    plt.show()
 
+    print('hi')
