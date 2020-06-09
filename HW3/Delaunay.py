@@ -66,8 +66,9 @@ class Delaunay:
         :type p: np.array 1X3
         """
         # adding point id in the triangulation
-        p = np.hstack((p, self.PointId))
-        self.PointId += 1
+        if p.size < 4:
+            p = np.hstack((p, self.PointId))
+            self.PointId += 1
 
         # find the triangle that contains the point
         T = self.findTriangle(p)
@@ -171,7 +172,7 @@ class Delaunay:
         """ deleting the triangles connected to the "big triangle" """
         outerTriangles = []
         for i, t in enumerate(self.Triangles):
-            if np.sum(t.Points[:, 3] < 0) > 0:  # means on of the points belong to the "big triangle"
+            if np.sum(t.Points[:, 3] < 0) > 0:  # means the points belong to the "big triangle"
                 outerTriangles.append(i)
                 # remove redundant neighbors from triangulation
                 for tri in t.Neighbors:
@@ -182,6 +183,49 @@ class Delaunay:
                                     tri.Neighbors[j] = None
 
         self.Triangles = [i for j, i in enumerate(self.Triangles) if j not in outerTriangles]
+
+    def addConstrains(self,constrains):
+        """
+        adding constrains to the triangulation
+        :param constrains: lines that can't be crossed .represented by two points each
+        :type constrains: np.array 2nX4
+        :return: none
+        """
+        for i in range(0,constrains.shape[0],2):
+            holePoints = self.removeIntersectedTriangles(constrains[i:i+2])
+            holeTriangulation = Delaunay(holePoints)
+            self.mergeHoleTriangulation(holeTriangulation)
+
+    def removeIntersectedTriangles(self, constrain):
+        """
+        find the triangles that intersected by constrain
+        delete them from triangulation and return the points of
+        the hole boundaries plus the points of intersections
+        :param constrain: np.array 2X4
+        :return: np.array mX4
+        """
+        epsilon = 0.0001
+
+        # moving the end points of the constrain into the triangles
+        constrain[0] = constrain[0] + epsilon*(constrain[1, 1] - constrain[0, 1])/(constrain[1, 0]-constrain[0, 0])
+        constrain[1] = constrain[0] - epsilon*(constrain[1, 1] - constrain[0, 1])/(constrain[1, 0]-constrain[0, 0])
+        # finding first triangle
+        holeTriangles = [self.findTriangle(constrain[0])]
+        serroundingTriangles = []
+        # boundaries and intersection points of the deleted triangles
+        holePoints = holeTriangles[-1].Points
+        pIntersect = constrain[0]
+        while pIntersect:
+            constrain[0] = pIntersect + epsilon*(constrain[1, 1] - constrain[0, 1])/(constrain[1, 0]-constrain[0, 0])
+            # finding intersection point and the adjacent neighbor
+            pIntersect, neighbor = holeTriangles[-1].findIntersection(constrain)
+            holeTriangles.append(holeTriangles[-1].Neighbors[neighbor])
+            if pIntersect:
+                holePoints = np.vstack((holePoints, pIntersect))
+
+
+
+
 
 
 if __name__ == '__main__':

@@ -52,3 +52,22 @@ class Triangle:
         col4 = np.ones((4, 1))[:, 0]
         m = np.vstack((col1, col2, col3, col4)).T
         return np.linalg.det(m) > 0
+
+    def findIntersection(self,l):
+        """
+        finds and returns intersection points of line with the trianglel edged
+        :type line: np.array 2X4
+        :return: intersections points and neighbors indices
+        """
+        for i in range(0,3):
+            L1 = line(self.Edges[i][0], self.Edges[i][1])
+            L2 = line(l.Edges[i][0], l.Edges[i][1])
+
+            R = intersection(L1, L2)
+            if R:
+                print
+                "Intersection detected:", R
+            else:
+                print
+                "No single intersection point detected"
+
