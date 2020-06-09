@@ -1,7 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from HW3.Delaunay import *
-
+from HW4.elevationCrossSection import *
+from HW4.vtkTriangulation import *
 
 def convexHull(d):
     """
@@ -84,6 +85,25 @@ def computeRegSurface(points):
     return np.linalg.solve(np.dot(A.T, A), np.dot(A.T, b))
 
 
+def isInterp(isIn, p):
+    """
+    t - list of triangles that our point was found in (list could be empty)
+    this method checks if height interpolation is possible
+    """
+    # if the returned list has no members - program cannot interpolate height
+    if not len(isIn):
+        print('we cannot interpolate height, the point is not in the triangulation')
+    # if the returned list has more than 2 members -
+    # the point is a triangle point and therefore already has a known height
+    elif len(isIn) > 2:
+        print('we cannot interpolate height, the point already has a known height')
+    # if the returned list has 1 or 2 members - we interpolate it's height
+    else:
+        p_height = interpolateHeight(isIn, p)
+        print('point', p, 'height is:', np.round(p_height, 4), '[m]')
+        return np.hstack((p, p_height))
+
+
 def interpolateHeight(t, p):
     """
     interpolating points height using heights of neighbor points
@@ -124,30 +144,68 @@ if __name__ == '__main__':
     points = initializeData()
     d = Delaunay(points)
     # define point 'p' for height interpolation
-    p = np.array([1., 121.5])
+    p = np.array([3, 116.5])
+    p2 = np.array([8.5, 120.5])
     # check if any triangle in the triangulation contains point 'p'
     isIn = []
+    isIn2 = []
     for t in d.Triangles:
         if isInsideTriangle(t, p):
             isIn.append(t)
-    # if the returned list has no members - program cannot interpolate height
-    if not len(isIn):
-        print('we cannot interpolate height, the point is not in the triangulation')
-    # if the returned list has more than 2 members -
-    # the point is a triangle point and therefore already has a known height
-    elif len(isIn) > 2:
-        print('we cannot interpolate height, the point already has a known height')
+        if isInsideTriangle(t, p2):
+            isIn2.append(t)
 
-    # if the returned list has 1 or 2 members - we interpolate it's height
-    else:
-        point_height = interpolateHeight(isIn, p)
-        print(point_height)
+    p_new = isInterp(isIn, p)
+    p2_new = isInterp(isIn2, p2)
+
+    # computing elevation cross section given 2 points
+    intersecting_tri = []
+    inter_points = []
+    for t in d.Triangles:
+        for edge in t.Edges:
+            lines = np.vstack((edge[:, 0:2], p, p2))
+            if doIntersect(lines):
+                intersecting_tri.append(t)
+                inter_points.append(interPoint(lines))
+
+    inter_points = np.vstack(inter_points)
+    inter_points = inter_points[inter_points[:, 0].argsort()]
+    elevation_points = [p_new, p2_new]
+    for i, p in enumerate(inter_points):
+        if i == len(inter_points) - 1:
+            break
+        if p[0] == inter_points[i + 1, :][0]:
+            elevation_points.append(isInterp([intersecting_tri[i], intersecting_tri[i + 1]], p))
+        # else:
+        #     elevation_points.append(isInterp([intersecting_tri[i]], p))
+
+    elevation_points = np.vstack([x for x in elevation_points if x is not None])
+    elevation_points = elevation_points[elevation_points[:, 1].argsort()]
+
+    fig, ax = plt.subplots()
+
+    start_pnt_height = p_new[-1]
+    for i, point in enumerate(elevation_points):
+        if point[-1] > start_pnt_height:
+            ax.scatter(point[1], point[2], color='r')
+        else:
+            ax.scatter(point[1], point[2], color='g')
+
+    ax.plot(elevation_points[:, 1], elevation_points[:, 2])
+    for i, point in enumerate(elevation_points):
+        ax.annotate("({},{},{})".format(np.round(point[0], 2), np.round(point[1], 2), np.round(point[2], 2)),
+                    (point[1], point[2]))
+    ax.set_title('Elevation Cross Section')
+    ax.set_xlabel('Y[m]')
+    ax.set_ylabel('Z[m]')
+    plt.show()
+
+    # visualizeTriangulation(points, d)
 
     # compute convex of triangulation
-    ch = convexHull(d)
-    # ch = ch.sort()
-    plt.scatter(ch[:, 0], ch[:, 1], color='r')
-    d.plotTriangulation()
-    plt.show()
+    # ch = convexHull(d)
+    # plt.scatter(ch[:, 0], ch[:, 1], color='r')
+    # d.plotTriangulation()
+    # plt.show()
 
     print('hi')
