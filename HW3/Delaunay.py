@@ -118,9 +118,9 @@ class Delaunay:
         for t in self.Triangles:
             tempPoints = np.vstack((t.Points, t.Points[0]))
             plt.plot(tempPoints[:, 0], tempPoints[:, 1], 'bo-', linewidth=0.4, markersize=1)
-            plt.annotate(t.ID, (np.average(t.Points[:, 0]), np.average(t.Points[:, 1])))
-            for p in t.Points:
-                plt.annotate(p[3], (p[0], p[1]))
+            # plt.annotate(t.ID, (np.average(t.Points[:, 0]), np.average(t.Points[:, 1])))
+            # for p in t.Points:
+            #     plt.annotate(p[3], (p[0], p[1]))
         plt.show()
 
     def plotTriangulationWithConstrain(self,constrain):
@@ -130,9 +130,9 @@ class Delaunay:
         for t in self.Triangles:
             tempPoints = np.vstack((t.Points, t.Points[0]))
             plt.plot(tempPoints[:, 0], tempPoints[:, 1], 'bo-', linewidth=0.4, markersize=1)
-            plt.annotate(t.ID, (np.average(t.Points[:, 0]), np.average(t.Points[:, 1])))
-            for p in t.Points:
-                plt.annotate(p[3], (p[0], p[1]))
+            # plt.annotate(t.ID, (np.average(t.Points[:, 0]), np.average(t.Points[:, 1])))
+            # for p in t.Points:
+            #     plt.annotate(p[3], (p[0], p[1]))
         plt.show()
 
     # def legalizeEdge(self, p, tri, opositTriangle):
