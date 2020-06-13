@@ -13,7 +13,7 @@ class Delaunay:
         :param points: np.array
         """
         self.__triangles = []
-        self.__pointId = 0
+        self.__pointId = 1
         self.__triangleId = 0
 
         # create big triangle
@@ -33,7 +33,7 @@ class Delaunay:
             self.insertPoint(p)
             if i % 100 == 0:
                 print(i, 'points inserted')  # show progress
-
+            # self.plotTriangulation()
         self.deleteOuterTriangles()
 
     @property
@@ -69,6 +69,9 @@ class Delaunay:
         if p.size < 4:
             p = np.hstack((p, self.PointId))
             self.PointId += 1
+        elif p[3] is None:
+            p[3] = self.PointId
+            self.PointId += 1
 
         # find the triangle that contains the point
         T = self.findTriangle(p)
@@ -101,7 +104,8 @@ class Delaunay:
         # check the empty circle property
         for i, t in enumerate([t1, t2, t3]):
             if t.Neighbors[0] is not None:
-                self.legalizeEdge(p, t, t.Neighbors[0])
+                # self.legalizeEdge(p, t, t.Neighbors[0])
+                self.legalizeEdge(t, 0)
 
     def findTriangle(self, p):
         """ find containing triangle"""
@@ -114,59 +118,37 @@ class Delaunay:
         for t in self.Triangles:
             tempPoints = np.vstack((t.Points, t.Points[0]))
             plt.plot(tempPoints[:, 0], tempPoints[:, 1], 'bo-', linewidth=0.4, markersize=1)
-            # plt.annotate(t.ID, (np.average(t.Points[:, 0]), np.average(t.Points[:, 1])))
-            # for p in t.Points:
-            #     plt.annotate(p[3], (p[0], p[1]))
+            plt.annotate(t.ID, (np.average(t.Points[:, 0]), np.average(t.Points[:, 1])))
+            for p in t.Points:
+                plt.annotate(p[3], (p[0], p[1]))
         plt.show()
 
-    def legalizeEdge(self, p, tri, opositTriangle):
-        """flipping triangulation of 4 edge polygon  """
+    def plotTriangulationWithConstrain(self,constrain):
+        for i in range(0,len(constrain),2):
+            plt.plot(constrain[i:i+2,0],constrain[i:i+2,1],'r-', linewidth=1.5, markersize=1)
+        # plt.plot(pIntersect[0],pIntersect[1],'ro', linewidth=0.6, markersize=1)
+        for t in self.Triangles:
+            tempPoints = np.vstack((t.Points, t.Points[0]))
+            plt.plot(tempPoints[:, 0], tempPoints[:, 1], 'bo-', linewidth=0.4, markersize=1)
+            plt.annotate(t.ID, (np.average(t.Points[:, 0]), np.average(t.Points[:, 1])))
+            for p in t.Points:
+                plt.annotate(p[3], (p[0], p[1]))
+        plt.show()
 
+    # def legalizeEdge(self, p, tri, opositTriangle):
+    def legalizeEdge(self,tri, edge):
+        """flipping triangulation of 4 edge polygon  """
+        opositTriangle = tri.Neighbors[edge]
+        p = tri.Points[(edge + 2) % 3]
         if opositTriangle is not None:
 
             if opositTriangle.isInsideCircle(p):
-                # self.plotTriangulation()
-                # building the two triangles the flip made
-                farPointInd = np.argmin(np.in1d(opositTriangle.Points[:, 3], tri.Points[:, 3]))
-                newTriangle1 = Triangle(opositTriangle.Points[farPointInd],
-                                        opositTriangle.Points[(farPointInd + 1) % 3], p, self.TriangleId)
-                self.TriangleId += 1
-                newTriangle2 = Triangle(opositTriangle.Points[(farPointInd - 1) % 3],
-                                        opositTriangle.Points[farPointInd], p, self.TriangleId)
-                self.TriangleId += 1
+                # swap diagonal
+                newTriangle1, newTriangle2 = self.flip(tri,edge)
 
-                # populate neighbors and counter neighbors
-                # newTriangle1
-                neighbor1 = opositTriangle.Neighbors[farPointInd]
-                if neighbor1 is not None:  # case of outer borders
-                    neighbor1.Neighbors[
-                        neighbor1.Neighbors.index(opositTriangle)] = newTriangle1  # populate oposit neighbor
-                neighbor2 = tri.Neighbors[(np.argmax(tri.Points[:, 3] == p[3]) - 1) % 3]
-                if neighbor2 is not None:
-                    neighbor2.Neighbors[neighbor2.Neighbors.index(tri)] = newTriangle1
-                neighbor3 = newTriangle2
-                newTriangle1.Neighbors.extend([neighbor1, neighbor2, neighbor3])
-
-                # newTriangle2
-                neighbor1 = opositTriangle.Neighbors[(farPointInd - 1) % 3]
-                if neighbor1 is not None:  # case of outer borders
-                    neighbor1.Neighbors[neighbor1.Neighbors.index(opositTriangle)] = newTriangle2
-                neighbor2 = newTriangle1
-                neighbor3 = tri.Neighbors[np.argmax(tri.Points[:, 3] == p[3])]
-                if neighbor3 is not None:
-                    neighbor3.Neighbors[neighbor3.Neighbors.index(tri)] = newTriangle2
-                newTriangle2.Neighbors.extend([neighbor1, neighbor2, neighbor3])
-
-                # adding the new triangles
-                self.Triangles.extend((newTriangle1, newTriangle2))
-
-                # delete changed triangles
-                del self.Triangles[self.Triangles.index(tri)]
-                del self.Triangles[self.Triangles.index(opositTriangle)]
-                # self.plotTriangulation()
-                # continue until all edge are legal
-                self.legalizeEdge(p, newTriangle1, newTriangle1.Neighbors[0])
-                self.legalizeEdge(p, newTriangle2, newTriangle2.Neighbors[0])
+                # keep going until all triangles are legal
+                self.legalizeEdge(newTriangle1, edge)
+                self.legalizeEdge(newTriangle2, edge)
 
     def deleteOuterTriangles(self):
         """ deleting the triangles connected to the "big triangle" """
@@ -175,12 +157,7 @@ class Delaunay:
             if np.sum(t.Points[:, 3] < 0) > 0:  # means the points belong to the "big triangle"
                 outerTriangles.append(i)
                 # remove redundant neighbors from triangulation
-                for tri in t.Neighbors:
-                    if tri is not None:
-                        for j, tri_neighbor in enumerate(tri.Neighbors):
-                            if tri_neighbor is not None:
-                                if tri_neighbor.ID == self.Triangles[i].ID:
-                                    tri.Neighbors[j] = None
+                self.removeTriangle(t)
 
         self.Triangles = [i for j, i in enumerate(self.Triangles) if j not in outerTriangles]
 
@@ -192,43 +169,157 @@ class Delaunay:
         :return: none
         """
         for i in range(0,constrains.shape[0],2):
-            holePoints = self.removeIntersectedTriangles(constrains[i:i+2])
-            holeTriangulation = Delaunay(holePoints)
-            self.mergeHoleTriangulation(holeTriangulation)
+            self.plotTriangulationWithConstrain(constrains)
+            # making list of  the edges intersected by the constrain
+            intersectedTriangles, intersectingEdges = self.findIntersectingEdges(constrains[i:i+2])
+            j=0
+            while j <= len(intersectingEdges)-1:
+                # building the 4 edges polygon to check
+                polyPoints = intersectedTriangles[j].Points
+                for p in intersectedTriangles[j].Neighbors[intersectingEdges[j]].Points:
+                    if (p == polyPoints).any():
+                        continue
+                    farPoint = p
 
-    def removeIntersectedTriangles(self, constrain):
-        """
-        find the triangles that intersected by constrain
-        delete them from triangulation and return the points of
-        the hole boundaries plus the points of intersections
-        :param constrain: np.array 2X4
-        :return: np.array mX4
-        """
-        epsilon = 0.0001
+                # arrange the polyPoints anticlockwise()
+                polyPoints = np.vstack((intersectedTriangles[j].Points[intersectingEdges[j]],farPoint,
+                                        intersectedTriangles[j].Points[(intersectingEdges[j]+1)%3],
+                                        intersectedTriangles[j].Points[(intersectingEdges[j]+2)%3]))
+                # self.plotTriangulationWithConstrain(constrains[i:i+2])
 
-        # moving the end points of the constrain into the triangles
-        constrain[0] = constrain[0] + epsilon*(constrain[1, 1] - constrain[0, 1])/(constrain[1, 0]-constrain[0, 0])
-        constrain[1] = constrain[0] - epsilon*(constrain[1, 1] - constrain[0, 1])/(constrain[1, 0]-constrain[0, 0])
-        # finding first triangle
-        holeTriangles = [self.findTriangle(constrain[0])]
-        serroundingTriangles = []
-        # boundaries and intersection points of the deleted triangles
-        holePoints = holeTriangles[-1].Points
-        pIntersect = constrain[0]
-        while pIntersect:
-            constrain[0] = pIntersect + epsilon*(constrain[1, 1] - constrain[0, 1])/(constrain[1, 0]-constrain[0, 0])
+                # if the polygon is convex we want to flip the diagonal and remove from the intersected edges list
+                if isConvex(polyPoints):
+                    newTriangle1, newTriangle2 = self.flip(intersectedTriangles[j], intersectingEdges[j])
+                    # self.plotTriangulationWithConstrain(constrains[i:i + 2])
+                    # if j+1 == len(intersectedTriangles)-1:
+                    #     break
+                    if j+2 <= len(intersectedTriangles)-1:
+                        if newTriangle1 in intersectedTriangles[j+1].Neighbors[intersectingEdges[j+1]].Neighbors:
+                            intersectedTriangles[j+1] = newTriangle1
+                            intersectingEdges[j+1] = 0
+                        elif newTriangle2 in intersectedTriangles[j+1].Neighbors[intersectingEdges[j+1]].Neighbors:
+                            intersectedTriangles[j + 1] = newTriangle2
+                            intersectingEdges[j + 1] = 0
+                        # intersectionPoint = intersect(self.Edges[i], l, self.Edges[i][0, 2])
+                        # if type(intersectionPoint) != int:
+                        #
+                        # self.plotTriangulationWithConstrain(constrains[i:i+2])
+                else: # if not convex we put the edge back to the list
+                    intersectedTriangles.append(intersectedTriangles[j])
+                    intersectingEdges.append(intersectingEdges[j])
+
+                j += 1
+
+    def findIntersectingEdges(self,constrain):
+        intersectedTriangles = []
+        intersectedEdges = []
+
+        if constrain[0, 0] < constrain[1, 0]:
+            epsilon = 0.05
+        else:
+            epsilon = -0.05
+        constrainTemp = np.copy(constrain)
+        # moving the end points of the constrainTemp into the triangles
+        constrainTemp[0, 0] = constrain[0, 0] + epsilon
+        constrainTemp[0, 1] = constrain[0, 1] + epsilon * (constrain[1, 1] - constrain[0, 1]) / (
+                    constrain[1, 0] - constrain[0, 0])
+        constrainTemp[1, 0] = constrain[1, 0] - epsilon
+        constrainTemp[1, 1] = constrain[1, 1] - epsilon * (constrain[1, 1] - constrain[0, 1]) / (
+                    constrain[1, 0] - constrain[0, 0])
+
+        # init hole triangles and points
+        intersectedTriangles.append(self.findTriangle(constrainTemp[0]))
+        # holePoints = intersectedTriangles[-1].Points
+        pIntersect = constrainTemp[0]
+        
+        while type(pIntersect) != int:
+            constrainTemp[0, 0] = pIntersect[0] + epsilon
+            constrainTemp[0, 1] = pIntersect[1] + epsilon * (constrainTemp[1, 1] - pIntersect[1]) / (
+                        constrainTemp[1, 0] - pIntersect[0])
+
             # finding intersection point and the adjacent neighbor
-            pIntersect, neighbor = holeTriangles[-1].findIntersection(constrain)
-            holeTriangles.append(holeTriangles[-1].Neighbors[neighbor])
-            if pIntersect:
-                holePoints = np.vstack((holePoints, pIntersect))
+            # self.plotTriangulationWithConstrain(constrainTemp)
+            pIntersect, intersectedEdge = intersectedTriangles[-1].findIntersection(constrainTemp)
+            if type(pIntersect) != int:
+                intersectedEdges.append(intersectedEdge)
+                intersectedTriangles.append(intersectedTriangles[-1].Neighbors[intersectedEdge])
+        intersectedTriangles.pop(-1)
+        return intersectedTriangles, intersectedEdges
 
 
+    def removeTriangle(self,t):
+        """removing from triangulation"""
+        for tri in t.Neighbors:
+            if tri is not None:
+                for j, tri_neighbor in enumerate(tri.Neighbors):
+                    if tri_neighbor is not None:
+                        if tri_neighbor.ID == t.ID:
+                            tri.Neighbors[j] = None
+        # del self.Triangles[self.Triangles.index(t)]
 
+    # def mergeHoleTriangulation(self, holeTriangulation):
 
+    def flip(self,tri,edge):
+        opositTriangle = tri.Neighbors[edge]
+        p = tri.Points[(edge + 2) % 3]
+        # building the two triangles the flip made
+        farPointInd = np.argmin(np.in1d(opositTriangle.Points[:, 3], tri.Points[:, 3]))
+        newTriangle1 = Triangle(opositTriangle.Points[farPointInd],
+                                opositTriangle.Points[(farPointInd + 1) % 3], p, self.TriangleId)
+        self.TriangleId += 1
+        newTriangle2 = Triangle(opositTriangle.Points[(farPointInd - 1) % 3],
+                                opositTriangle.Points[farPointInd], p, self.TriangleId)
+        self.TriangleId += 1
 
+        # populate neighbors and counter neighbors
+        # newTriangle1
+        neighbor1 = opositTriangle.Neighbors[farPointInd]
+        if neighbor1 is not None:  # case of outer borders
+            neighbor1.Neighbors[
+                neighbor1.Neighbors.index(opositTriangle)] = newTriangle1  # populate oposit neighbor
+        neighbor2 = tri.Neighbors[(np.argmax(tri.Points[:, 3] == p[3]) - 1) % 3]
+        if neighbor2 is not None:
+            neighbor2.Neighbors[neighbor2.Neighbors.index(tri)] = newTriangle1
+        neighbor3 = newTriangle2
+        newTriangle1.Neighbors.extend([neighbor1, neighbor2, neighbor3])
+
+        # newTriangle2
+        neighbor1 = opositTriangle.Neighbors[(farPointInd - 1) % 3]
+        if neighbor1 is not None:  # case of outer borders
+            neighbor1.Neighbors[neighbor1.Neighbors.index(opositTriangle)] = newTriangle2
+        neighbor2 = newTriangle1
+        neighbor3 = tri.Neighbors[np.argmax(tri.Points[:, 3] == p[3])]
+        if neighbor3 is not None:
+            neighbor3.Neighbors[neighbor3.Neighbors.index(tri)] = newTriangle2
+        newTriangle2.Neighbors.extend([neighbor1, neighbor2, neighbor3])
+
+        # adding the new triangles
+        self.Triangles.extend((newTriangle1, newTriangle2))
+
+        # delete changed triangles
+        del self.Triangles[self.Triangles.index(tri)]
+        del self.Triangles[self.Triangles.index(opositTriangle)]
+
+        return newTriangle1, newTriangle2
 
 if __name__ == '__main__':
     points = initializeData()
     d = Delaunay(points)
     d.plotTriangulation()
+    d.addConstrains(np.vstack((points[0],points[9],points[2],points[7],points[1],points[4])))
+
+
+    # temp_points = []
+    # filename = 'data.xyz'
+    # try:
+    #     with open(filename) as file:
+    #         lines = file.readlines()
+    #         for line in lines:
+    #             line = line.split()
+    #             if len(line) < 3:
+    #                 continue
+    #             else:
+    #                 temp_points.append(np.array(line[0:3]).astype(float))
+    # except:
+    #     print('Oops! your file is not supported')
+    # points = np.vstack(temp_points)
