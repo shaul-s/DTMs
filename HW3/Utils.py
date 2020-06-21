@@ -40,6 +40,48 @@ def initializeData():
 
     return np.vstack(temp_points)
 
+
+def loadHeightsGrid():
+    """
+    loads heights grid .asc file
+    :return: array of points
+    """
+    point3Dfiles = askopenfilenames(title='Select Input File')
+
+    temp_points = []
+
+    for filename in point3Dfiles:
+        try:
+            with open(filename) as file:
+                lines = file.readlines()
+
+                for i,line in enumerate(lines):
+                    line = line.split()
+
+                    if len(line) < 3:
+                        if line[0] == 'ncols':
+                            ncols = int(line[1])
+                        if line[0] == 'nrows':
+                            nrows = int(line[1])
+                        if line[0] == 'xllcorner':
+                            xllcorner = float(line[1])
+                        if line[0] == 'yllcorner':
+                            yllcorner = float(line[1])
+                        if line[0] == 'cellsize':
+                            cellsize = float(line[1])
+                        if line[0] == 'NODATA_value':
+                            NODATA_value = float(line[1])
+                    else:
+                        for j,height in enumerate(line):
+                            temp_points.append(np.array([xllcorner + j*cellsize, yllcorner + (nrows-(i+1-6))*cellsize, float(height)]))
+
+        except:
+            print('Oops! your file is not supported')
+    points = np.asarray(temp_points)
+    return np.vstack(points),nrows,ncols,cellsize
+
+
+
 def ray_intersect_polygon(p, edge):
     """
     check for intersection between ray from a point and edge of polygon

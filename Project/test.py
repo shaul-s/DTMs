@@ -9,7 +9,7 @@ if __name__ == '__main__':
     tri = spat.Delaunay(points[:, 0: 2])
 
     fig, ax = plt.subplots()
-    ax.triplot(points[:, 0], points[:, 1], tri.simplices)
+    # ax.triplot(points[:, 0], points[:, 1], tri.simplices)
     ax.plot(points[:, 0], points[:, 1], 'o', markersize=5)
 
     # for i, triangle in enumerate(tri.simplices):
