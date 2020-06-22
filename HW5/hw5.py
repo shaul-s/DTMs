@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from HW3.Delaunay import *
 from matplotlib.colors import LightSource
 
-def hillShade(map, azdeg, altdeg):
+def hillShadeMap(map, azdeg, altdeg):
     """
     create hillShade map
     :param grid: grid of heights
@@ -15,16 +15,25 @@ def hillShade(map, azdeg, altdeg):
     azdeg = np.radians(azdeg)
     altdeg = np.radians(altdeg)
 
-    p0 = np.sin(azdeg)
-    q0 = np.cos(azdeg)
-    b = np.cos(altdeg)
+    # calculate zanital degree
+    Zl = np.pi/2 - altdeg
 
+    # p0 = np.sin(azdeg)
+    # q0 = np.cos(azdeg)
+    # b = np.cos(altdeg)
+
+    # calculate derivatives
     Zx = ndimage.sobel(map, axis=0)
     Zy = ndimage.sobel(map, axis=1)
 
-    pTag = (Zx*p0+Zy*q0)/np.sqrt(Zx**2+Zy**2)
+    # calculate slope and aspect values
+    slope = np.arctan(Zx**2+Zy**2)
+    aspect = np.arctan2(Zy,Zx)
+    # if aspect is negative, add 360 deg
+    mask = (aspect < 0)*1
+    aspect = aspect + 2*np.pi*mask
 
-    shadeValue = 255*0.5*(1+(pTag/b))
+    shadeValue = 255*(np.cos(Zl)*np.cos(slope)+ np.sin(Zl)*np.sin(slope)*np.cos(azdeg-aspect))
     return shadeValue
 
 
@@ -50,7 +59,7 @@ if __name__ == '__main__':
     # axs[0, 0].scatter(points[:, 0], points[:, 1], c=points[:, 2], s=5, cmap='gray')
     ax1.scatter(points[:, 0], points[:, 1], c=points[:, 2], s=5, cmap='gray')
 
-    shadeValues = hillShade(HeightsGrid,135,45)
+    shadeValues = hillShadeMap(HeightsGrid,135,45)
     shadeValues = shadeValues.flatten()
     ax2.scatter(points[:, 0], points[:, 1], c=shadeValues, s=5, cmap='gray')
 
