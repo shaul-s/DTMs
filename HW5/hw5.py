@@ -2,9 +2,6 @@ from scipy import spatial as spat
 from scipy import ndimage
 from matplotlib import pyplot as plt
 from HW3.Delaunay import *
-from matplotlib.colors import LightSource
-import matplotlib.colors
-import cv2
 from matplotlib.colors import hsv_to_rgb
 
 def hillShadeMap(map, azdeg, altdeg, cellSize):
@@ -20,6 +17,7 @@ def hillShadeMap(map, azdeg, altdeg, cellSize):
     :type altdeg: float
     :rtype : np.array nXm,np.array nXm,np.array nXm
     """
+    azdeg = 360-(azdeg+90)
     azdeg = np.radians(azdeg)
     altdeg = np.radians(altdeg)
 
@@ -28,12 +26,8 @@ def hillShadeMap(map, azdeg, altdeg, cellSize):
 
 
     # calculate derivatives
-    # filter_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=np.float)/8
-    # filter_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]], dtype=np.float)/8
-    # Zx = signal.convolve2d(map, filter_x, mode="same", boundary="symm", fillvalue=0)
-    # Zy = signal.convolve2d(map, filter_y, mode="same", boundary="symm", fillvalue=0)
-    Zx = ndimage.sobel(map, axis=0)/(8*cellSize)
-    Zy = ndimage.sobel(map, axis=1)/(8*cellSize)
+    Zx = ndimage.sobel(map, axis=0)/(cellSize)
+    Zy = ndimage.sobel(map, axis=1)/(cellSize)
 
     # calculate slope and aspect values
     slope = np.arctan(Zx**2+Zy**2)
@@ -47,23 +41,27 @@ def hillShadeMap(map, azdeg, altdeg, cellSize):
     shadeValue = 255*(np.cos(Zl)*np.cos(slope)+ np.sin(Zl)*np.sin(slope)*np.cos(azdeg-aspect))
     return shadeValue, slope, aspect
 
-def grayscale_height_normalization(grid, normalize_by):
-    """
-    normalize heigits by normalization value
-    :param grid: grid
-    :param normalize_by: normalization value
-    :return: normalized [0,normalize_by] heights
-    """
-    min = grid.min()
-    max = grid.max()
-    range = max - min
-    # normalize
-    grid = grid - min
-    grid = grid / range
-    # scale
-    grid = grid * normalize_by
+def normalize(map):
+    """normalize values to 0-1 range"""
+    return (map-np.min(map))/(np.max(map)-np.min(map))
 
-    return grid
+
+def bcubic(DEM, nrows, ncol, cellSize, points):
+    """ bcubic interpolation on DEM """
+    # calculate derivatives
+    ZxTemp = (DEM.T[2:]-DEM.T[0:DEM.shape[1]-2])
+    Zx = ZxTemp.T/(2*cellSize)
+    Zx = Zx[1:Zx.shape[0]-1]
+    Zy = DEM[2:]-DEM[0:DEM.shape[0]-2]/(2*cellSize)
+    Zy = Zy[:,1:Zy.shape[1]-1]
+    Zxy = ZxTemp.T[2:]-ZxTemp.T[0:ZxTemp.T.shape[0]-2]/(4*cellSize*cellSize)
+
+    # find points's cells indices
+
+
+    Xinv = np.array([[1,0,0,0],[0,1,0,0],[-3,-2,3,-1],[2,1,-2,1]])
+    XinvT = Xinv.T
+
 
 if __name__ == '__main__':
     # load data
@@ -71,6 +69,8 @@ if __name__ == '__main__':
     HeightsGrid = np.reshape(points[:,2],(nrows,ncol))
     # create triangulation
     tri = spat.Delaunay(points[:, 0: 2])
+
+    bcubic(HeightsGrid, nrows, ncol, cellSize, points)
 
     # fig, axs = plt.subplots(ncols=2,nrows=1)
     fig1, (heights, shades) = plt.subplots(1,2)
@@ -89,25 +89,29 @@ if __name__ == '__main__':
     # create hillshade map
     shadeValues, slope, aspect = hillShadeMap(HeightsGrid,135,45,cellSize)
     shades.imshow(shadeValues,cmap='gray')
-
-    # ls = LightSource(azdeg=135, altdeg=45)
-    # shades.imshow(ls.hillshade(HeightsGrid, vert_exag=1), cmap='gray')
     shades.set(xlabel='Illumination Intensity')
 
     # slopes and aspects maps
-    fig2, (slopes, aspects) = plt.subplots(1, 2)
+    fig2, (slopes, aspects, slopeAspect) = plt.subplots(1, 3)
 
     slopes.imshow(slope,cmap='gray')
     slopes.set(xlabel='slopes map')
-    # V = np.ones(aspect.shape)
-    # S = np.ones(aspect.shape)
-    # aspect = grayscale_height_normalization(aspect, 179)
-    # H = aspect
-    # HSV = np.dstack((H, S, V)).astype('uint8')
-    # RGB = hsv_to_rgb(HSV).astype('uint8')
-    # aspects.imshow(RGB)
-    aspects.imshow(aspect, cmap='hsv')
+
+    # aspect to HSV
+    V = np.ones(aspect.shape)
+    S = np.ones(aspect.shape)
+    H = np.rad2deg(aspect)/360
+    aspectHSV = np.dstack((H, S, V))
+    aspectRGB = hsv_to_rgb(aspectHSV)
+    aspects.imshow(aspectRGB)
     aspects.set(xlabel='aspects map')
+
+    # slope and aspect combine
+    S = normalize(slope)
+    slopeAspectHSV = np.dstack((H, S, V))
+    slopeAspectRGB = hsv_to_rgb(slopeAspectHSV)
+    slopeAspect.imshow(slopeAspectRGB)
+    slopeAspect.set(xlabel='slopeAspects map')
     plt.show()
 
 
