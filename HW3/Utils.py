@@ -1,5 +1,7 @@
 import numpy as np
 from tkinter.filedialog import askopenfilenames
+
+
 # from __future__ import division
 
 def RightLeftCollinear(p1, p2, p3):
@@ -14,7 +16,6 @@ def RightLeftCollinear(p1, p2, p3):
         return 2
     if delta == 0:
         return 3
-
 
 
 def initializeData():
@@ -55,7 +56,7 @@ def loadHeightsGrid():
             with open(filename) as file:
                 lines = file.readlines()
 
-                for i,line in enumerate(lines):
+                for i, line in enumerate(lines):
                     line = line.split()
 
                     if len(line) < 3:
@@ -72,14 +73,15 @@ def loadHeightsGrid():
                         if line[0] == 'NODATA_value':
                             NODATA_value = float(line[1])
                     else:
-                        for j,height in enumerate(line):
-                            temp_points.append(np.array([xllcorner + j*cellsize, yllcorner + (nrows-(i+1-6))*cellsize, float(height)]))
+                        for j, height in enumerate(line):
+                            temp_points.append(np.array(
+                                [xllcorner + j * cellsize, yllcorner + (nrows - (i + 1 - 6)) * cellsize,
+                                 float(height)]))
 
         except:
             print('Oops! your file is not supported')
     points = np.asarray(temp_points)
-    return np.vstack(points),nrows,ncols,cellsize
-
+    return np.vstack(points), nrows, ncols, cellsize
 
 
 def ray_intersect_polygon(p, edge):
@@ -107,7 +109,7 @@ def ray_intersect_polygon(p, edge):
         return False
 
     # handling spacial cases
-    if p[1] == edge[0][1] or p[1] == edge[1][1]:  #[1] of point equal to[1] of an edge point
+    if p[1] == edge[0][1] or p[1] == edge[1][1]:  # [1] of point equal to[1] of an edge point
         p[1] += epsilon
         return ray_intersect_polygon(p, edge)
     if p[0] == edge[0][0] and p[0] == edge[1][0]:  # the point is in a vertical edge
@@ -127,12 +129,12 @@ def ray_intersect_polygon(p, edge):
 def line(p1, p2):
     A = (p1[1] - p2[1])
     B = (p2[0] - p1[0])
-    C = (p1[0]*p2[1] - p2[0]*p1[1])
+    C = (p1[0] * p2[1] - p2[0] * p1[1])
     return A, B, -C
 
 
 def intersection(L1, L2, z):
-    D  = L1[0] * L2[1] - L1[1] * L2[0]
+    D = L1[0] * L2[1] - L1[1] * L2[0]
     Dx = L1[2] * L2[1] - L1[1] * L2[2]
     Dy = L1[0] * L2[2] - L1[2] * L2[0]
     if D != 0:
@@ -142,6 +144,7 @@ def intersection(L1, L2, z):
     else:
         return 0
 
+
 def intersect(l1, l2, z):
     """
     finding point of intersection between two segments
@@ -150,8 +153,8 @@ def intersect(l1, l2, z):
     """
 
     epsilon = pow(10, -5)
-    a1 = (l1[1,1] - l1[0,1]) / (l1[1,0] - l1[0,0])
-    b1 = l1[0,1] - l1[0,0] * a1
+    a1 = (l1[1, 1] - l1[0, 1]) / (l1[1, 0] - l1[0, 0])
+    b1 = l1[0, 1] - l1[0, 0] * a1
     a2 = (l2[1, 1] - l2[0, 1]) / (l2[1, 0] - l2[0, 0])
     b2 = l2[0, 1] - l2[0, 0] * a2
     if a1 - a2 == 0:
@@ -159,10 +162,10 @@ def intersect(l1, l2, z):
     else:
         x_intersection = -(b1 - b2) / (a1 - a2)
         y_intersection = b1 + a1 * x_intersection
-        if ((l1[0,0] - x_intersection) * (x_intersection - l1[1,0]) >= 0 - epsilon and
-                (l2[0,0] - x_intersection) * (x_intersection - l2[1,0]) >= 0 - epsilon and
-                (l1[0,1] - y_intersection) * (y_intersection - l1[1,1]) >= 0 - epsilon and
-                (l2[0,1] - y_intersection) * (y_intersection - l2[1,1]) >= 0 - epsilon):
+        if ((l1[0, 0] - x_intersection) * (x_intersection - l1[1, 0]) >= 0 - epsilon and
+                (l2[0, 0] - x_intersection) * (x_intersection - l2[1, 0]) >= 0 - epsilon and
+                (l1[0, 1] - y_intersection) * (y_intersection - l1[1, 1]) >= 0 - epsilon and
+                (l2[0, 1] - y_intersection) * (y_intersection - l2[1, 1]) >= 0 - epsilon):
             return np.array([x_intersection, y_intersection, z, None])
         else:
             return 0
@@ -193,7 +196,7 @@ def isConvex(points):
     return True
 
 
-def rightTurn (p1, p2, p3):
+def rightTurn(p1, p2, p3):
     """
     defines if their is a right turn between 3 points
     Args:
@@ -204,10 +207,11 @@ def rightTurn (p1, p2, p3):
     Returns: (boolean) true if right turn, false otherwise
 
     """
-    if (p2[0] - p1[0])*(p3[1] - p1[1]) - (p3[0] - p1[0])*(p2[1]-p1[1]) < 0:
+    if (p2[0] - p1[0]) * (p3[1] - p1[1]) - (p3[0] - p1[0]) * (p2[1] - p1[1]) < 0:
         return True
     else:
         return False
+
 
 def anticlockwise(points):
     """
@@ -215,17 +219,17 @@ def anticlockwise(points):
 
     """
 
-    x_min = points[0,0]
+    x_min = points[0, 0]
     i_min = 0
     for i in range(len(points)):
-        if points[i,0] < x_min:
-            x_min = points[i,0]
+        if points[i, 0] < x_min:
+            x_min = points[i, 0]
             i_min = i
-    if i_min < len(points)-1:
+    if i_min < len(points) - 1:
         if i_min == 0:
             if rightTurn(points[i_min], points[i_min + 1], points[-1]):
                 points = list(reversed(points))
         elif rightTurn(points[i_min], points[i_min + 1], points[i_min - 1]):
             points = list(reversed(points))
     elif rightTurn(points[i_min], points[0], points[i_min - 1]):
-            points = list(reversed(points))
+        points = list(reversed(points))
