@@ -1,6 +1,7 @@
 from scipy import spatial as spat
 from scipy import ndimage
 from scipy import linalg as la
+import pandas as pd
 from matplotlib import pyplot as plt
 from HW3.Delaunay import *
 from matplotlib.colors import hsv_to_rgb
@@ -73,11 +74,8 @@ def bcubic(oldDEM, point2d, idx, jdx):
         return np.array([[h00, h01], [h10, h11]])
 
     # get x and y values of the cell upper right point in the old DEM
-    # x = oldDEM["cell_size"] * (point2d[0] - oldDEM["xll"]) % oldDEM["cell_size"]
-    # y = oldDEM["cell_size"] * (point2d[1] - oldDEM["yll"]) % oldDEM["cell_size"]
-    x = point2d[0]
-    y = point2d[1]
-
+    x = oldDEM["cell_size"] * (point2d[0] - oldDEM["xll"]) % oldDEM["cell_size"]
+    y = oldDEM["cell_size"] * (point2d[1] - oldDEM["yll"]) % oldDEM["cell_size"]
 
     # computing matrices for interpolation
     H_matrices = []
@@ -220,6 +218,11 @@ if __name__ == '__main__':
 
     oldDEM = {"DEM": HeightsGrid, "nrows": nrows, "ncol": ncol, "xll": 1000, "yll": 1000, "cell_size": cellSize}
 
-    computeNewDEM(oldDEM, 20, 30, 1001, 1001, 10)
+    new_points = computeNewDEM(oldDEM, 16, 35, 1000, 1000, 40)
+
+    new_HeightsGrid = np.reshape(new_points[:, 2], (16, 35))
+
+
+    print(pd.DataFrame(new_HeightsGrid))
 
     print('hi')
