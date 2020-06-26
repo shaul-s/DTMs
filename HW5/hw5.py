@@ -141,10 +141,10 @@ def computeNewDEM(oldDEM, nrows, ncol, xll, yll, cellsize):
     heightsgrid_xy = []
     heightsgrid_z = []
 
-    for i in range(nrows + 1):
-        for j in range(ncol + 1):
+    for i in range(nrows):
+        for j in range(ncol):
             #  create the XY grid
-            point2d = np.array([xll + j * cellsize, yll + i * cellsize])
+            point2d = np.array([xll + j * cellsize, yll + (i) * cellsize])
             heightsgrid_xy.append(point2d)
             # find point's cell indexes in the old DEM so we can find them
             idx = int((point2d[0] - oldDEM["xll"]) / oldDEM["cell_size"])
@@ -170,59 +170,67 @@ if __name__ == '__main__':
     points, nrows, ncol, cellSize = loadHeightsGrid()
     HeightsGrid = np.reshape(points[:, 2], (nrows, ncol))
     # create triangulation
-    # tri = spat.Delaunay(points[:, 0: 2])
-    #
-    # bcubic(HeightsGrid, nrows, ncol, cellSize, points)
-    #
-    # # fig, axs = plt.subplots(ncols=2,nrows=1)
-    # fig1, (heights, shades) = plt.subplots(1, 2)
-    #
-    # # draw triangulation
-    # # ax.triplot(points[:, 0], points[:, 1], tri.simplices)
-    #
-    # minHeight = np.min(points[:, 2])
-    # maxHeight = np.max(points[:, 2])
-    # grayLevel = (points[:, 2] - minHeight) / (maxHeight - minHeight) * 255
-    # points = np.hstack((points, np.reshape(grayLevel.T, (points.shape[0], 1))))
-    #
-    # # draw vertices in gray scale by height
-    # heights.scatter(points[:, 0], points[:, 1], c=points[:, 2], s=5, cmap='gray')
-    #
-    # # create hillshade map
-    # shadeValues, slope, aspect = hillShadeMap(HeightsGrid, 135, 45, cellSize)
-    # shades.imshow(shadeValues, cmap='gray')
-    # shades.set(xlabel='Illumination Intensity')
-    #
-    # # slopes and aspects maps
-    # fig2, (slopes, aspects, slopeAspect) = plt.subplots(1, 3)
-    #
-    # slopes.imshow(slope, cmap='gray')
-    # slopes.set(xlabel='slopes map')
-    #
-    # # aspect to HSV
-    # V = np.ones(aspect.shape)
-    # S = np.ones(aspect.shape)
-    # H = np.rad2deg(aspect) / 360
-    # aspectHSV = np.dstack((H, S, V))
-    # aspectRGB = hsv_to_rgb(aspectHSV)
-    # aspects.imshow(aspectRGB)
-    # aspects.set(xlabel='aspects map')
-    #
-    # # slope and aspect combine
-    # S = normalize(slope)
-    # slopeAspectHSV = np.dstack((H, S, V))
-    # slopeAspectRGB = hsv_to_rgb(slopeAspectHSV)
-    # slopeAspect.imshow(slopeAspectRGB)
-    # slopeAspect.set(xlabel='slopeAspects map')
-    # plt.show()
+    tri = spat.Delaunay(points[:, 0: 2])
+
+    # fig, axs = plt.subplots(ncols=2,nrows=1)
+    fig1, (heights, shades) = plt.subplots(1, 2)
+
+    # draw triangulation
+    # ax.triplot(points[:, 0], points[:, 1], tri.simplices)
+
+    minHeight = np.min(points[:, 2])
+    maxHeight = np.max(points[:, 2])
+    grayLevel = (points[:, 2] - minHeight) / (maxHeight - minHeight) * 255
+    points = np.hstack((points, np.reshape(grayLevel.T, (points.shape[0], 1))))
+
+    # draw vertices in gray scale by height
+    heights.scatter(points[:, 0], points[:, 1], c=points[:, 2], s=5, cmap='gray')
+
+    # create hillshade map
+    shadeValues, slope, aspect = hillShadeMap(HeightsGrid, 135, 45, cellSize)
+    shades.imshow(shadeValues, cmap='gray')
+    shades.set(xlabel='Illumination Intensity')
+
+    # slopes and aspects maps
+    fig2, (slopes, aspects, slopeAspect) = plt.subplots(1, 3)
+
+    slopes.imshow(slope, cmap='gray')
+    slopes.set(xlabel='slopes map')
+
+    # aspect to HSV
+    V = np.ones(aspect.shape)
+    S = np.ones(aspect.shape)
+    H = np.rad2deg(aspect) / 360
+    aspectHSV = np.dstack((H, S, V))
+    aspectRGB = hsv_to_rgb(aspectHSV)
+    aspects.imshow(aspectRGB)
+    aspects.set(xlabel='aspects map')
+
+    # slope and aspect combine
+    S = normalize(slope)
+    slopeAspectHSV = np.dstack((H, S, V))
+    slopeAspectRGB = hsv_to_rgb(slopeAspectHSV)
+    slopeAspect.imshow(slopeAspectRGB)
+    slopeAspect.set(xlabel='slopeAspects map')
+    plt.show()
 
     oldDEM = {"DEM": HeightsGrid, "nrows": nrows, "ncol": ncol, "xll": 1000, "yll": 1000, "cell_size": cellSize}
 
-    new_points = computeNewDEM(oldDEM, 16, 35, 1000, 1000, 40)
+    nrows = 200
+    ncol = 200
 
-    new_HeightsGrid = np.reshape(new_points[:, 2], (16, 35))
+    new_points = computeNewDEM(oldDEM, nrows, ncol, 1025, 1025, 35)
 
+    new_HeightsGrid = np.reshape(new_points[:, 2], (nrows, ncol))
 
-    print(pd.DataFrame(new_HeightsGrid))
+    minHeight = np.min(new_points[:, 2])
+    maxHeight = np.max(new_points[:, 2])
+    grayLevel = (new_points[:, 2] - minHeight) / (maxHeight - minHeight) * 255
+    new_points = np.hstack((new_points, np.reshape(grayLevel.T, (new_points.shape[0], 1))))
 
-    print('hi')
+    # draw vertices in gray scale by height
+    plt.scatter(new_points[:, 0], new_points[:, 1], c=new_points[:, 2], s=5, cmap='gray')
+    plt.show()
+
+    # print(pd.DataFrame(new_HeightsGrid))
+
