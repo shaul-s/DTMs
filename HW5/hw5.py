@@ -232,5 +232,4 @@ if __name__ == '__main__':
     plt.scatter(new_points[:, 0], new_points[:, 1], c=new_points[:, 2], s=5, cmap='gray')
     plt.show()
 
-    # print(pd.DataFrame(new_HeightsGrid))
-
+    print(pd.DataFrame(new_HeightsGrid))
