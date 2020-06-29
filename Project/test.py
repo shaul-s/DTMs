@@ -81,6 +81,9 @@ def getKminimalIndexes(array, K):
 
 
 def getCircumcenter(tri):
+    """
+    circumcenter solution taken from the web
+    """
     center = np.zeros(2)
     #
     #  Circumradius.
@@ -119,11 +122,19 @@ def getCircumcenter(tri):
     return center
 
 
+def getCentroid(tri):
+    """
+    get centroid of tri given 3 triangle points
+    """
+    centroid = np.array([np.average(tri[:, 0]), np.average(tri[:, 1])])
+    return centroid
+
+
 def triangleContraction(del_tri, tris):
     circumcenters = []
     for tri in tris:
         tri_pts = np.vstack((del_tri.points[tri[0]], del_tri.points[tri[1]], del_tri.points[tri[2]]))
-        circumcenters.append(getCircumcenter(tri_pts))
+        circumcenters.append(getCentroid(tri_pts))
     tris = np.unique(tris)  # make sure we are not deleting wrong indexes
     temp_points = np.delete(del_tri.points, [*tris], axis=0)
     temp_points = np.vstack((temp_points, np.vstack(circumcenters)))
@@ -144,7 +155,7 @@ if __name__ == '__main__':
     area = computeTriArea(del_tri)
 
     # try to delete 20% of lowest area triangles
-    K = int(0.3 * len(area))
+    K = int(0.2 * len(area))
     idx_for_delete = getKminimalIndexes(area, K)
     triangles_for_deletion = del_tri.simplices[idx_for_delete]
     # del_tri = triangleRemoval(del_tri, triangles_for_deletion)
