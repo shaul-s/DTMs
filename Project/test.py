@@ -1,7 +1,9 @@
 import numpy as np
 from tkinter.filedialog import askopenfilenames
 from scipy import spatial as spat
+from scipy import interpolate as interp
 from matplotlib import pyplot as plt
+from vtkTriangulation import *
 
 
 def initializeData():
@@ -28,7 +30,7 @@ def initializeData():
     return np.vstack(temp_points)
 
 
-def computeTriArea(del_tri):
+def computeTriArea(triangulation):
     def triArea(tri_pts):
         """
         return triangle 2d area given 3 points
@@ -40,37 +42,37 @@ def computeTriArea(del_tri):
         return abs(0.5 * (((x2 - x1) * (y3 - y1)) - ((x3 - x1) * (y2 - y1))))
 
     areas = []
-    for tri in del_tri.simplices:
-        tri_pts = np.vstack((del_tri.points[tri[0]], del_tri.points[tri[1]], del_tri.points[tri[2]]))
+    for tri in triangulation.simplices:
+        tri_pts = np.vstack((triangulation.points[tri[0]], triangulation.points[tri[1]], triangulation.points[tri[2]]))
         areas.append(triArea(tri_pts))
 
     return np.vstack(areas)
 
 
-def vertexRemoval(del_tri, vertex_idx):
+def vertexRemoval(triangulation, vertex_idx):
     """
     detects and removes a vertex from a given set of points. returns an updated delaunay triangulation
-    :param del_tri: delaunay triangulation object
+    :param triangulation: delaunay triangulation object
     :param vertex_idx: points index in the triangulation
     :return: del triangulation with the vertex removed
     """
-    if 0 <= vertex_idx < len(del_tri.points):
-        temp_points = np.delete(del_tri.points, vertex_idx, axis=0)
+    if 0 <= vertex_idx < len(triangulation.points):
+        temp_points = np.delete(triangulation.points, vertex_idx, axis=0)
         return spat.Delaunay(temp_points)
     else:
         print('the vertex index is invalid')
         return
 
 
-def triangleRemoval(del_tri, tris):
+def triangleRemoval(triangulation, tris):
     """
-    removes triangles from the delaunay triangulation
-    :param del_tri: delaunay triangulation object (As given by scipy)
+    removes triangulation from the delaunay triangulation
+    :param triangulation: delaunay triangulation object (As given by scipy)
     :param tri: array nX3 with the point indexes of the triangle to be removed
-    :return: del triangulation with the triangles removed
+    :return: del triangulation with the triangulation removed
     """
     tris = np.unique(tris)  # make sure we are not deleting wrong indexes
-    temp_points = np.delete(del_tri.points, [*tris], axis=0)
+    temp_points = np.delete(triangulation.points, [*tris], axis=0)
     return spat.Delaunay(temp_points)
 
 
@@ -130,43 +132,78 @@ def getCentroid(tri):
     return centroid
 
 
-def triangleContraction(del_tri, tris):
-    circumcenters = []
-    for tri in tris:
-        tri_pts = np.vstack((del_tri.points[tri[0]], del_tri.points[tri[1]], del_tri.points[tri[2]]))
-        circumcenters.append(getCentroid(tri_pts))
-    tris = np.unique(tris)  # make sure we are not deleting wrong indexes
-    temp_points = np.delete(del_tri.points, [*tris], axis=0)
-    temp_points = np.vstack((temp_points, np.vstack(circumcenters)))
+def triangleContraction(triangulation, triangles_to_delete, heights):
+    """
+    replace chosen triangulation with their centroid
+    :param triangulation: Scipy triangulation
+    :param triangles_to_delete: list of triangulation to remove from triangulation
+    :param heights: array of the heights of the triangulation points
+    :return: Scipy triangulation simplified
+    """
+    centroids = []
 
-    return spat.Delaunay(temp_points)
+    # computing hight value of the new point by linear interpulation
+    interpulation = interp.LinearNDInterpolator(triangulation.points[:,:2], heights)
+
+    # collecting all the points of the triangles that need to be deleted
+    # for each of these triangles computing the centroid to replace with
+
+    new_hights = []
+    for tri in triangles_to_delete:
+        tri_pts = np.vstack((triangulation.points[tri[0]], triangulation.points[tri[1]], triangulation.points[tri[2]]))
+        centroid = getCentroid(tri_pts)
+        new_hights.append(interpulation(centroid))
+        centroids.append(centroid)
+
+    points_to_delete = np.unique(triangles_to_delete)  # make sure we are not deleting wrong indexes
+    
+    # deleting the chosen points and their heights
+    temp_points = np.delete(triangulation.points, [*points_to_delete], axis=0)
+    heights = np.delete(heights, [*points_to_delete], axis=0)
+
+    # adding the centroids of the deleted triangles to the points and heights lists
+    temp_points = np.vstack((temp_points, np.vstack(centroids)))
+    heights = np.vstack((heights, np.squeeze(np.asarray(new_hights), axis=2)))
+
+    return spat.Delaunay(temp_points), heights
 
 
 if __name__ == '__main__':
     points = initializeData()
-    del_tri = spat.Delaunay(points[:, 0: 2])
+    triangulation = spat.Delaunay(points[:, 0: 2])
+    heights = points[:,2,None]
+    # triangulation = spat.Delaunay(points)
+    simplify_precent = 0.2
 
-    vertex = del_tri.points[10, 0:2]
+    vertex = triangulation.points[10, 0:2]
     vertex_idx = int(10)
-    tri = del_tri.simplices[10, :]
+    tri = triangulation.simplices[10, :]
 
-    # del_tri = vertexRemoval(del_tri, vertex_idx)
+    # triangulation = vertexRemoval(triangulation, vertex_idx)
     # compute area of every triangle in the triangulation
-    area = computeTriArea(del_tri)
+    area = computeTriArea(triangulation)
 
     # try to delete 20% of lowest area triangles
-    K = int(0.2 * len(area))
+    K = int(simplify_precent * len(area))
     idx_for_delete = getKminimalIndexes(area, K)
-    triangles_for_deletion = del_tri.simplices[idx_for_delete]
-    # del_tri = triangleRemoval(del_tri, triangles_for_deletion)
+    triangles_for_deletion = triangulation.simplices[idx_for_delete]
+    # triangulation = triangleRemoval(triangulation, triangles_for_deletion)
 
     # try to delete 20% of lowest area using triangle contraction
     # we basically delete all vertexes of the triangle but add another point - the circumcenter of triangle
-    del_tri = triangleContraction(del_tri, triangles_for_deletion)
+    triangles_simplify_20, heights = triangleContraction(triangulation, triangles_for_deletion, heights)
 
-    fig, ax = plt.subplots()
-    ax.triplot(del_tri.points[:, 0], del_tri.points[:, 1], del_tri.simplices)
-    ax.plot(del_tri.points[:, 0], del_tri.points[:, 1], 'o', markersize=5)
+    # plotting
+
+    # full triangulation
+    fig1, ax1 = plt.subplots()
+    ax1.triplot(triangulation.points[:, 0], triangulation.points[:, 1], triangulation.simplices)
+    ax1.plot(triangulation.points[:, 0], triangulation.points[:, 1], 'o', markersize=3)
+    # simplified 20% triangulation
+    fig2, ax2 = plt.subplots()
+    ax2.triplot(triangles_simplify_20.points[:, 0], triangles_simplify_20.points[:, 1], triangles_simplify_20.simplices)
+    ax2.plot(triangles_simplify_20.points[:, 0], triangles_simplify_20.points[:, 1], 'o', markersize=3)
+
 
     # for i, triangle in enumerate(tri.simplices):
     #     tri_points = np.vstack((points[triangle[0]], points[triangle[1]], points[triangle[2]]))
@@ -174,3 +211,5 @@ if __name__ == '__main__':
     #     ax.annotate("({})".format(i), (centroid[0], centroid[1]))
 
     plt.show()
+
+    visualizeScipyTriangulation(triangulation,heights)
