@@ -140,14 +140,14 @@ def triangleContraction(triangulation, triangles_to_delete, heights):
     :param heights: array of the heights of the triangulation points
     :return: Scipy triangulation simplified
     """
-    centroids = []
+
 
     # computing hight value of the new point by linear interpulation
     interpulation = interp.LinearNDInterpolator(triangulation.points[:,:2], heights)
 
     # collecting all the points of the triangles that need to be deleted
     # for each of these triangles computing the centroid to replace with
-
+    centroids = []
     new_hights = []
     for tri in triangles_to_delete:
         tri_pts = np.vstack((triangulation.points[tri[0]], triangulation.points[tri[1]], triangulation.points[tri[2]]))
@@ -191,7 +191,7 @@ if __name__ == '__main__':
 
     # try to delete 20% of lowest area using triangle contraction
     # we basically delete all vertexes of the triangle but add another point - the circumcenter of triangle
-    triangles_simplify_20, heights = triangleContraction(triangulation, triangles_for_deletion, heights)
+    triangulation_simplify_20, heights_simplify_20 = triangleContraction(triangulation, triangles_for_deletion, heights)
 
     # plotting
 
@@ -201,8 +201,8 @@ if __name__ == '__main__':
     ax1.plot(triangulation.points[:, 0], triangulation.points[:, 1], 'o', markersize=3)
     # simplified 20% triangulation
     fig2, ax2 = plt.subplots()
-    ax2.triplot(triangles_simplify_20.points[:, 0], triangles_simplify_20.points[:, 1], triangles_simplify_20.simplices)
-    ax2.plot(triangles_simplify_20.points[:, 0], triangles_simplify_20.points[:, 1], 'o', markersize=3)
+    ax2.triplot(triangulation_simplify_20.points[:, 0], triangulation_simplify_20.points[:, 1], triangulation_simplify_20.simplices)
+    ax2.plot(triangulation_simplify_20.points[:, 0], triangulation_simplify_20.points[:, 1], 'o', markersize=3)
 
 
     # for i, triangle in enumerate(tri.simplices):
@@ -213,3 +213,4 @@ if __name__ == '__main__':
     plt.show()
 
     visualizeScipyTriangulation(triangulation,heights)
+    visualizeScipyTriangulation(triangulation_simplify_20,heights_simplify_20)
