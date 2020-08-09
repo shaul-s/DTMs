@@ -76,7 +76,7 @@ def triangleRemoval(triangulation, tris):
     return spat.Delaunay(temp_points)
 
 
-def getKminimalIndexes(array, K):
+def getKminimalIndexes(area, K):
     # Smallest K elements indices
     # using sorted() + lambda + list slicing
     return sorted(range(len(area)), key=lambda sub: area[sub])[:K]
@@ -134,13 +134,12 @@ def getCentroid(tri):
 
 def triangleContraction(triangulation, triangles_to_delete, heights):
     """
-    replace chosen triangulation with their centroid
+    replace chosen triangles with their centroid
     :param triangulation: Scipy triangulation
-    :param triangles_to_delete: list of triangulation to remove from triangulation
+    :param triangles_to_delete: list of triangles to remove from triangulation
     :param heights: array of the heights of the triangulation points
-    :return: Scipy triangulation simplified
+    :return: Scipy triangulation simplified, hights of the simplify triangulation points
     """
-
 
     # computing hight value of the new point by linear interpulation
     interpulation = interp.LinearNDInterpolator(triangulation.points[:,:2], heights)
@@ -167,13 +166,44 @@ def triangleContraction(triangulation, triangles_to_delete, heights):
 
     return spat.Delaunay(temp_points), heights
 
+def edgeContraction(triangulation, triangles_to_delete, heights):
+    """
+    replace edge of chosen triangles with their middle point
+    :param triangulation: Scipy triangulation
+    :param triangles_to_delete: list of triangles to remove from triangulation
+    :param heights: array of the heights of the triangulation points
+    :return: Scipy triangulation simplified, hights of the simplify triangulation points
+    """
+    # collecting all the points of the edges that need to be deleted
+    # we deleting the first edge of each triangle that need to be deleted
+    # for each of these edges computing the centroid to replace with
+    centroids = []
+    new_heights = []
+    for tri in triangles_to_delete:
+        edge_pts = np.vstack((triangulation.points[tri[0]], triangulation.points[tri[1]]))
+        centroid = getCentroid(edge_pts)
+        new_heights.append((heights[tri[0]] + heights[tri[1]])/2)
+        centroids.append(centroid)
+
+    points_to_delete = np.unique(triangles_to_delete[:,:2])  # make sure we are not deleting wrong indexes
+
+    # deleting the chosen points and their heights
+    temp_points = np.delete(triangulation.points, [*points_to_delete], axis=0)
+    heights = np.delete(heights, [*points_to_delete], axis=0)
+
+    # adding the centroids of the deleted triangles to the points and heights lists
+    temp_points = np.vstack((temp_points, np.vstack(centroids)))
+    heights = np.vstack((heights, np.asarray(new_heights)))
+
+    return spat.Delaunay(temp_points), heights
+
 
 if __name__ == '__main__':
     points = initializeData()
     triangulation = spat.Delaunay(points[:, 0: 2])
     heights = points[:,2,None]
     # triangulation = spat.Delaunay(points)
-    simplify_precent = 0.2
+    simplify_precent = 0.5
 
     vertex = triangulation.points[10, 0:2]
     vertex_idx = int(10)
@@ -187,11 +217,19 @@ if __name__ == '__main__':
     K = int(simplify_precent * len(area))
     idx_for_delete = getKminimalIndexes(area, K)
     triangles_for_deletion = triangulation.simplices[idx_for_delete]
-    # triangulation = triangleRemoval(triangulation, triangles_for_deletion)
 
-    # try to delete 20% of lowest area using triangle contraction
-    # we basically delete all vertexes of the triangle but add another point - the circumcenter of triangle
-    triangulation_simplify_20, heights_simplify_20 = triangleContraction(triangulation, triangles_for_deletion, heights)
+    # triangle removal
+    # delete all vertices of the triangles
+    triangulation_simplify_20_Tremoval = triangleRemoval(triangulation, triangles_for_deletion)
+
+    # triangle contraction
+    # we basically delete all vertices of the triangle but add another point - the centroid of triangle
+    triangulation_simplify_20_Tcontraction, heights_simplify_20_Tcontraction = triangleContraction(triangulation, triangles_for_deletion, heights)
+
+    # edge contraction
+    # we basically delete one edge of the triangle and replace with it's center
+    triangulation_simplify_20_Econtraction, heights_simplify_20_Econtraction = edgeContraction(triangulation,
+                                                                                      triangles_for_deletion, heights)
 
     # plotting
 
@@ -199,10 +237,21 @@ if __name__ == '__main__':
     fig1, ax1 = plt.subplots()
     ax1.triplot(triangulation.points[:, 0], triangulation.points[:, 1], triangulation.simplices)
     ax1.plot(triangulation.points[:, 0], triangulation.points[:, 1], 'o', markersize=3)
+
     # simplified 20% triangulation
+
+    # triangle contraction
     fig2, ax2 = plt.subplots()
-    ax2.triplot(triangulation_simplify_20.points[:, 0], triangulation_simplify_20.points[:, 1], triangulation_simplify_20.simplices)
-    ax2.plot(triangulation_simplify_20.points[:, 0], triangulation_simplify_20.points[:, 1], 'o', markersize=3)
+    ax2.triplot(triangulation_simplify_20_Tcontraction.points[:, 0], triangulation_simplify_20_Tcontraction.points[:, 1], triangulation_simplify_20_Tcontraction.simplices)
+    ax2.plot(triangulation_simplify_20_Tcontraction.points[:, 0], triangulation_simplify_20_Tcontraction.points[:, 1], 'o', markersize=3)
+
+    # edge contraction
+    fig3, ax3 = plt.subplots()
+    ax3.triplot(triangulation_simplify_20_Econtraction.points[:, 0],
+                triangulation_simplify_20_Econtraction.points[:, 1], triangulation_simplify_20_Econtraction.simplices)
+    ax3.plot(triangulation_simplify_20_Econtraction.points[:, 0], triangulation_simplify_20_Econtraction.points[:, 1],
+             'o', markersize=3)
+
 
 
     # for i, triangle in enumerate(tri.simplices):
@@ -212,5 +261,7 @@ if __name__ == '__main__':
 
     plt.show()
 
+    # 3d visualization
     visualizeScipyTriangulation(triangulation,heights)
-    visualizeScipyTriangulation(triangulation_simplify_20,heights_simplify_20)
+    visualizeScipyTriangulation(triangulation_simplify_20_Tcontraction,heights_simplify_20_Tcontraction)
+    visualizeScipyTriangulation(triangulation_simplify_20_Econtraction,heights_simplify_20_Econtraction)
