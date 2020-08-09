@@ -49,31 +49,9 @@ def computeTriArea(triangulation):
     return np.vstack(areas)
 
 
-def vertexRemoval(triangulation, vertex_idx):
-    """
-    detects and removes a vertex from a given set of points. returns an updated delaunay triangulation
-    :param triangulation: delaunay triangulation object
-    :param vertex_idx: points index in the triangulation
-    :return: del triangulation with the vertex removed
-    """
-    if 0 <= vertex_idx < len(triangulation.points):
-        temp_points = np.delete(triangulation.points, vertex_idx, axis=0)
-        return spat.Delaunay(temp_points)
-    else:
-        print('the vertex index is invalid')
-        return
 
 
-def triangleRemoval(triangulation, tris):
-    """
-    removes triangulation from the delaunay triangulation
-    :param triangulation: delaunay triangulation object (As given by scipy)
-    :param tri: array nX3 with the point indexes of the triangle to be removed
-    :return: del triangulation with the triangulation removed
-    """
-    tris = np.unique(tris)  # make sure we are not deleting wrong indexes
-    temp_points = np.delete(triangulation.points, [*tris], axis=0)
-    return spat.Delaunay(temp_points)
+
 
 
 def getKminimalIndexes(area, K):
@@ -131,6 +109,57 @@ def getCentroid(tri):
     centroid = np.array([np.average(tri[:, 0]), np.average(tri[:, 1])])
     return centroid
 
+def vertexRemoval(triangulation, heights, K):
+    """
+    detects and removes a vertex from a given set of points. returns an updated delaunay triangulation
+    :param triangulation: delaunay triangulation object
+    :param vertex_idx: points index in the triangulation
+    :return: del triangulation with the vertex removed
+    """
+    # if 0 <= vertex_idx < len(triangulation.points):
+    #     temp_points = np.delete(triangulation.points, vertex_idx, axis=0)
+    #     return spat.Delaunay(temp_points)
+    # else:
+    #     print('the vertex index is invalid')
+    #     return
+    #
+    while triangulation.simplices.shape[0] > K:
+        area = computeTriArea(triangulation)
+        tri_to_delete = triangulation.simplices[np.argmin(area)]
+
+        points_to_delete = tri_to_delete[0]  # indices of the points of the triangle we deleting
+
+        # deleting the chosen points and their heights
+        temp_points = np.delete(triangulation.points, points_to_delete, axis=0)
+        heights = np.delete(heights, points_to_delete, axis=0)
+
+        triangulation = spat.Delaunay(temp_points)
+        print("number of triangles is ", triangulation.simplices.shape[0])  # progress indication
+
+    return triangulation, heights
+
+def triangleRemoval(triangulation, heights, K):
+    """
+    removes triangulation from the delaunay triangulation
+    :param triangulation: delaunay triangulation object (As given by scipy)
+    :param tri: array nX3 with the point indexes of the triangle to be removed
+    :return: del triangulation with the triangulation removed
+    """
+    while triangulation.simplices.shape[0] > K:
+        area = computeTriArea(triangulation)
+        tri_to_delete = triangulation.simplices[np.argmin(area)]
+
+        points_to_delete = tri_to_delete  # indices of the points of the triangle we deleting
+
+        # deleting the chosen points and their heights
+        temp_points = np.delete(triangulation.points, [*points_to_delete], axis=0)
+        heights = np.delete(heights, [*points_to_delete], axis=0)
+
+        triangulation = spat.Delaunay(temp_points)
+        print("number of triangles is ", triangulation.simplices.shape[0])  # progress indication
+
+    return triangulation, heights
+
 
 def triangleContraction(triangulation, heights, K):
     """
@@ -185,7 +214,7 @@ def triangleContraction(triangulation, heights, K):
     # temp_points = np.vstack((temp_points, np.vstack(centroids)))
     # heights = np.vstack((heights, np.squeeze(np.asarray(new_hights), axis=2)))
 
-    return spat.Delaunay(temp_points), heights
+    return triangulation, heights
 
 # def edgeContraction(triangulation, triangles_to_delete, heights):
 #     """
@@ -252,7 +281,7 @@ def edgeContraction(triangulation, heights, K):
 
         print("number of triangles is ", triangulation.simplices.shape[0])  # progress indication
 
-    return spat.Delaunay(temp_points), heights
+    return triangulation, heights
 
 
 if __name__ == '__main__':
@@ -260,7 +289,7 @@ if __name__ == '__main__':
     triangulation = spat.Delaunay(points[:, 0: 2])
     heights = points[:,2,None]
     # triangulation = spat.Delaunay(points)
-    simplify_precent = 0.2
+    simplify_precent = 0.1
 
     vertex = triangulation.points[10, 0:2]
     vertex_idx = int(10)
@@ -275,9 +304,13 @@ if __name__ == '__main__':
     # idx_for_delete = getKminimalIndexes(area, K)
     # triangles_for_deletion = triangulation.simplices[idx_for_delete]
 
+    # vertex removal
+    # delete vertex of each triangle
+    triangulation_simplify_20_Vremoval, heights_simplify_20_Vremoval = vertexRemoval(triangulation, heights, K)
+
     # triangle removal
     # delete all vertices of the triangles
-    # triangulation_simplify_20_Tremoval = triangleRemoval(triangulation, triangles_for_deletion)
+    triangulation_simplify_20_Tremoval, heights_simplify_20_Tremoval = triangleRemoval(triangulation,heights,K)
 
     # triangle contraction
     # we basically delete all vertices of the triangle but add another point - the centroid of triangle
