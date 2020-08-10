@@ -3,7 +3,7 @@ from tkinter.filedialog import askopenfilenames
 from scipy import spatial as spat
 from scipy import interpolate as interp
 from matplotlib import pyplot as plt
-from vtkTriangulation import *
+# from vtkTriangulation import *
 
 
 def initializeData():
@@ -100,6 +100,18 @@ def getCentroid(tri):
     centroid = np.array([np.average(tri[:, 0]), np.average(tri[:, 1])])
     return centroid
 
+def interpHeight(triangulation, heights, deleted_point):
+    """
+    given a simplified triangulation, return the heights of the deleted points
+    :param triangulation: delaunay triangulation object
+    :param heights: the heights of points in the triangulation
+    :param deleted_point: points that we want to interpolate height
+    :return: new heights for the deleted points
+    """
+    interpolation = interp.LinearNDInterpolator(triangulation.points[:, :2], heights)
+    return interpolation(deleted_point[:, :2])
+
+
 def vertexRemoval(triangulation, heights, K):
     """
     detects and removes a vertex from a given set of points. returns an updated delaunay triangulation
@@ -107,12 +119,13 @@ def vertexRemoval(triangulation, heights, K):
     :param vertex_idx: points index in the triangulation
     :return: del triangulation with the vertex removed
     """
-
+    deleted_points = []
     while triangulation.simplices.shape[0] > K:
         area = computeTriArea(triangulation)
         tri_to_delete = triangulation.simplices[np.argmin(area)]
 
         points_to_delete = tri_to_delete[0]  # indices of the points of the triangle we deleting
+        deleted_points.append(np.hstack((triangulation.points[points_to_delete], heights[points_to_delete])))
 
         # deleting the chosen points and their heights
         temp_points = np.delete(triangulation.points, points_to_delete, axis=0)
@@ -121,7 +134,8 @@ def vertexRemoval(triangulation, heights, K):
         triangulation = spat.Delaunay(temp_points)
         print("number of triangles is ", triangulation.simplices.shape[0])  # progress indication
 
-    return triangulation, heights
+    return triangulation, heights, np.vstack(deleted_points)
+
 
 def triangleRemoval(triangulation, heights, K):
     """
@@ -130,11 +144,13 @@ def triangleRemoval(triangulation, heights, K):
     :param tri: array nX3 with the point indexes of the triangle to be removed
     :return: del triangulation with the triangulation removed
     """
+    deleted_points = []
     while triangulation.simplices.shape[0] > K:
         area = computeTriArea(triangulation)
         tri_to_delete = triangulation.simplices[np.argmin(area)]
 
         points_to_delete = tri_to_delete  # indices of the points of the triangle we deleting
+        deleted_points.append(np.hstack((np.take(triangulation.points, tri_to_delete, axis=0), np.take(heights, tri_to_delete, axis=0))))
 
         # deleting the chosen points and their heights
         temp_points = np.delete(triangulation.points, [*points_to_delete], axis=0)
@@ -143,7 +159,7 @@ def triangleRemoval(triangulation, heights, K):
         triangulation = spat.Delaunay(temp_points)
         print("number of triangles is ", triangulation.simplices.shape[0])  # progress indication
 
-    return triangulation, heights
+    return triangulation, heights, np.vstack(deleted_points)
 
 
 def triangleContraction(triangulation, heights, K):
@@ -154,9 +170,9 @@ def triangleContraction(triangulation, heights, K):
     :param heights: array of the heights of the triangulation points
     :return: Scipy triangulation simplified, heights of the simplify triangulation points
     """
-
-    # computing hight value of the new point by linear interpulation
-    interpulation = interp.LinearNDInterpolator(triangulation.points[:,:2], heights)
+    deleted_points = []
+    # computing height value of the new point by linear interpolation
+    interpulation = interp.LinearNDInterpolator(triangulation.points[:, :2], heights)
 
     # collecting all the points of the triangles that need to be deleted
     # for each of these triangles computing the centroid to replace with
@@ -164,12 +180,13 @@ def triangleContraction(triangulation, heights, K):
     while triangulation.simplices.shape[0] > K:
         area = computeTriArea(triangulation)
         tri_to_delete = triangulation.simplices[np.argmin(area)]
-        tri_pts = np.vstack((triangulation.points[tri_to_delete[0]], triangulation.points[tri_to_delete[1]], triangulation.points[tri_to_delete[2]]))
+        tri_pts = np.vstack((triangulation.points[tri_to_delete[0]], triangulation.points[tri_to_delete[1]],
+                             triangulation.points[tri_to_delete[2]]))
         centroid = getCentroid(tri_pts)
         new_height = interpulation(centroid)
 
         points_to_delete = tri_to_delete  # indices of the points of the triangle we deleting
-
+        deleted_points.append(np.hstack((np.take(triangulation.points, tri_to_delete, axis=0), np.take(heights, tri_to_delete, axis=0))))
         # deleting the chosen points and their heights
         temp_points = np.delete(triangulation.points, [*points_to_delete], axis=0)
         heights = np.delete(heights, [*points_to_delete], axis=0)
@@ -198,7 +215,8 @@ def triangleContraction(triangulation, heights, K):
     # temp_points = np.vstack((temp_points, np.vstack(centroids)))
     # heights = np.vstack((heights, np.squeeze(np.asarray(new_hights), axis=2)))
 
-    return triangulation, heights
+    return triangulation, heights, np.vstack(deleted_points)
+
 
 # def edgeContraction(triangulation, triangles_to_delete, heights):
 #     """
@@ -242,7 +260,7 @@ def edgeContraction(triangulation, heights, K):
     # collecting all the points of the edges that need to be deleted
     # we deleting the first edge of each triangle that need to be deleted
     # for each of these edges computing the centroid to replace with
-
+    deleted_points = []
     while triangulation.simplices.shape[0] > K:
         area = computeTriArea(triangulation)
         tri_to_delete = triangulation.simplices[np.argmin(area)]
@@ -251,7 +269,8 @@ def edgeContraction(triangulation, heights, K):
         new_height = (heights[tri_to_delete[0]] + heights[tri_to_delete[1]]) / 2
 
         points_to_delete = tri_to_delete[:2]  # indices of the points of the edge we deleting
-
+        deleted_points.append(
+            np.hstack((np.take(triangulation.points, tri_to_delete, axis=0), np.take(heights, tri_to_delete, axis=0))))
         # deleting the chosen points and their heights
         temp_points = np.delete(triangulation.points, [*points_to_delete], axis=0)
         heights = np.delete(heights, [*points_to_delete], axis=0)
@@ -264,13 +283,13 @@ def edgeContraction(triangulation, heights, K):
 
         print("number of triangles is ", triangulation.simplices.shape[0])  # progress indication
 
-    return triangulation, heights
+    return triangulation, heights, np.vstack(deleted_points)
 
 
 if __name__ == '__main__':
     points = initializeData()
     triangulation = spat.Delaunay(points[:, 0: 2])
-    heights = points[:,2,None]
+    heights = points[:, 2, None]
     # triangulation = spat.Delaunay(points)
     simplify_precent = 0.1
 
@@ -283,23 +302,38 @@ if __name__ == '__main__':
     area = computeTriArea(triangulation)
 
     # try to delete 20% of lowest area triangles
-    K = int((1-simplify_precent) * len(triangulation.simplices))
+    K = int((1 - simplify_precent) * len(triangulation.simplices))
 
     # vertex removal
     # delete vertex of each triangle
-    triangulation_simplify_20_Vremoval, heights_simplify_20_Vremoval = vertexRemoval(triangulation, heights, K)
+    triangulation_simplify_20_Vremoval, heights_simplify_20_Vremoval, deleted_points_Vremoval = vertexRemoval(triangulation, heights, K)
 
     # triangle removal
     # delete all vertices of the triangles
-    triangulation_simplify_20_Tremoval, heights_simplify_20_Tremoval = triangleRemoval(triangulation,heights,K)
+    triangulation_simplify_20_Tremoval, heights_simplify_20_Tremoval, deleted_points_Tremoval = triangleRemoval(triangulation, heights, K)
 
     # triangle contraction
     # we basically delete all vertices of the triangle but add another point - the centroid of triangle
-    triangulation_simplify_20_Tcontraction, heights_simplify_20_Tcontraction = triangleContraction(triangulation,heights,K)
+    triangulation_simplify_20_Tcontraction, heights_simplify_20_Tcontraction, deleted_points_Tcontraction = triangleContraction(triangulation,
+                                                                                                   heights, K)
 
     # edge contraction
     # we basically delete one edge of the triangle and replace with it's center
-    triangulation_simplify_20_Econtraction, heights_simplify_20_Econtraction = edgeContraction(triangulation,heights,K)
+    triangulation_simplify_20_Econtraction, heights_simplify_20_Econtraction, deleted_points_Econtraction = edgeContraction(triangulation, heights,
+                                                                                               K)
+    # height interpolation
+    # vertex removal
+    del_points_heights_Vremoval = interpHeight(triangulation_simplify_20_Vremoval, heights_simplify_20_Vremoval, deleted_points_Vremoval)
+    # triangle removal
+    del_points_heights_Tremoval = interpHeight(triangulation_simplify_20_Tremoval, heights_simplify_20_Tremoval,
+                                               deleted_points_Tremoval)
+    # triangle contraction
+    del_points_heights_Tcontraction = interpHeight(triangulation_simplify_20_Tcontraction, heights_simplify_20_Tcontraction,
+                                               deleted_points_Tcontraction)
+    # edge contraction
+    del_points_heights_Econtraction = interpHeight(triangulation_simplify_20_Econtraction,
+                                                   heights_simplify_20_Econtraction,
+                                                   deleted_points_Econtraction)
 
 
     # 2d plotting
@@ -313,8 +347,10 @@ if __name__ == '__main__':
 
     # triangle contraction
     fig2, ax2 = plt.subplots()
-    ax2.triplot(triangulation_simplify_20_Tcontraction.points[:, 0], triangulation_simplify_20_Tcontraction.points[:, 1], triangulation_simplify_20_Tcontraction.simplices)
-    ax2.plot(triangulation_simplify_20_Tcontraction.points[:, 0], triangulation_simplify_20_Tcontraction.points[:, 1], 'o', markersize=3)
+    ax2.triplot(triangulation_simplify_20_Tcontraction.points[:, 0],
+                triangulation_simplify_20_Tcontraction.points[:, 1], triangulation_simplify_20_Tcontraction.simplices)
+    ax2.plot(triangulation_simplify_20_Tcontraction.points[:, 0], triangulation_simplify_20_Tcontraction.points[:, 1],
+             'o', markersize=3)
 
     # edge contraction
     fig3, ax3 = plt.subplots()
@@ -323,7 +359,14 @@ if __name__ == '__main__':
     ax3.plot(triangulation_simplify_20_Econtraction.points[:, 0], triangulation_simplify_20_Econtraction.points[:, 1],
              'o', markersize=3)
 
-
+    # vertex removal
+    fig4, ax4 = plt.subplots()
+    ax4.triplot(triangulation_simplify_20_Vremoval.points[:, 0],
+                triangulation_simplify_20_Vremoval.points[:, 1], triangulation_simplify_20_Vremoval.simplices)
+    ax4.plot(triangulation_simplify_20_Vremoval.points[:, 0], triangulation_simplify_20_Vremoval.points[:, 1],
+             'o', markersize=3)
+    ax4.plot(deleted_points_Vremoval[:, 0], deleted_points_Vremoval[:, 1],
+             'o', color='r', markersize=3)
 
     # for i, triangle in enumerate(tri.simplices):
     #     tri_points = np.vstack((points[triangle[0]], points[triangle[1]], points[triangle[2]]))
@@ -333,6 +376,6 @@ if __name__ == '__main__':
     plt.show()
 
     # 3d visualization
-    visualizeScipyTriangulation(triangulation,heights)
-    visualizeScipyTriangulation(triangulation_simplify_20_Tcontraction,heights_simplify_20_Tcontraction)
-    visualizeScipyTriangulation(triangulation_simplify_20_Econtraction,heights_simplify_20_Econtraction)
+    # visualizeScipyTriangulation(triangulation, heights)
+    # visualizeScipyTriangulation(triangulation_simplify_20_Tcontraction, heights_simplify_20_Tcontraction)
+    # visualizeScipyTriangulation(triangulation_simplify_20_Econtraction, heights_simplify_20_Econtraction)
