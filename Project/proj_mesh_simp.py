@@ -374,24 +374,24 @@ if __name__ == '__main__':
 
 
     std_Vremoval = np.std(heights_diff_Vremoval)
-    std_Tremoval = np.std(heights_diff_Vremoval)
-    std_Tcontraction = np.std(heights_diff_Vremoval)
-    std_Econtraction = np.std(heights_diff_Vremoval)
+    std_Tremoval = np.std(heights_diff_Tremoval)
+    std_Tcontraction = np.std(heights_diff_Tcontraction)
+    std_Econtraction = np.std(heights_diff_Econtraction)
 
     average_Vremoval = np.average(heights_diff_Vremoval)
-    average_Tremoval = np.average(heights_diff_Vremoval)
-    average_Tcontraction = np.average(heights_diff_Vremoval)
-    average_Econtraction = np.average(heights_diff_Vremoval)
+    average_Tremoval = np.average(heights_diff_Tremoval)
+    average_Tcontraction = np.average(heights_diff_Tcontraction)
+    average_Econtraction = np.average(heights_diff_Econtraction)
 
     median_Vremoval = np.median(heights_diff_Vremoval)
-    median_Tremoval = np.median(heights_diff_Vremoval)
-    median_Tcontraction = np.median(heights_diff_Vremoval)
-    median_Econtraction = np.median(heights_diff_Vremoval)
+    median_Tremoval = np.median(heights_diff_Tremoval)
+    median_Tcontraction = np.median(heights_diff_Tcontraction)
+    median_Econtraction = np.median(heights_diff_Econtraction)
 
     maxDiff_Vremoval = np.max(heights_diff_Vremoval)
-    maxDiff_Tremoval = np.max(heights_diff_Vremoval)
-    maxDiff_Tcontraction = np.max(heights_diff_Vremoval)
-    maxDiff_Econtraction = np.max(heights_diff_Vremoval)
+    maxDiff_Tremoval = np.max(heights_diff_Tremoval)
+    maxDiff_Tcontraction = np.max(heights_diff_Tcontraction)
+    maxDiff_Econtraction = np.max(heights_diff_Econtraction)
 
     print('Vremoval')
     print('average = ',average_Vremoval)
