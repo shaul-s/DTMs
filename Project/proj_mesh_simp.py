@@ -299,7 +299,7 @@ if __name__ == '__main__':
 
 
 
-    simplify_precent = 0.1
+    simplify_precent = 0.2
 
     # vertex removal
     # delete vertex of each triangle
@@ -438,7 +438,7 @@ if __name__ == '__main__':
                 triangulation_simplify_Vremoval.points[:, 1], triangulation_simplify_Vremoval.simplices)
     ax2.plot(triangulation_simplify_Vremoval.points[:, 0], triangulation_simplify_Vremoval.points[:, 1],
              'o', markersize=3)
-    plt.title('Vertex Removal 10%')
+    plt.title('Vertex Removal 20%')
     plt.axis('off')
     plt.savefig("triangulation_simplify_Vremoval.png", bbox_inches='tight')
 
@@ -448,7 +448,7 @@ if __name__ == '__main__':
                 triangulation_simplify_Tremoval.points[:, 1], triangulation_simplify_Tremoval.simplices)
     ax3.plot(triangulation_simplify_Tremoval.points[:, 0], triangulation_simplify_Tremoval.points[:, 1],
              'o', markersize=3)
-    plt.title('Triangle Removal 10%')
+    plt.title('Triangle Removal 20%')
     plt.axis('off')
     plt.savefig("triangulation_simplify_Tremoval.png", bbox_inches='tight')
 
@@ -458,7 +458,7 @@ if __name__ == '__main__':
                 triangulation_simplify_Tcontraction.points[:, 1], triangulation_simplify_Tcontraction.simplices)
     ax4.plot(triangulation_simplify_Tcontraction.points[:, 0], triangulation_simplify_Tcontraction.points[:, 1],
              'o', markersize=3)
-    plt.title('Triangle Contraction 10%')
+    plt.title('Triangle Contraction 20%')
     plt.axis('off')
     plt.savefig("triangulation_simplify_Tcontraction.png", bbox_inches='tight')
 
@@ -468,21 +468,58 @@ if __name__ == '__main__':
                 triangulation_simplify_Econtraction.points[:, 1], triangulation_simplify_Econtraction.simplices)
     ax5.plot(triangulation_simplify_Econtraction.points[:, 0], triangulation_simplify_Econtraction.points[:, 1],
              'o', markersize=3)
-    plt.title('Edge Contraction 10%')
+    plt.title('Edge Contraction 20%')
     plt.axis('off')
     plt.savefig("triangulation_simplify_Econtraction.png", bbox_inches='tight')
 
+    plt.show()
 
+    # differences histograms
+
+    fig6, ax6 = plt.subplots()
+    ax6.hist(heights_diff_Vremoval, 50, density=True, facecolor='b', alpha=0.75)
+    plt.xlabel('Difference[m]')
+    plt.ylabel('Probability[%]')
+    plt.title('differences of vertex remove 20% simplification from original')
+    plt.grid(True)
+    plt.savefig("Vremoval Histogram.png", bbox_inches='tight')
+
+    fig7, ax7 = plt.subplots()
+    ax7.hist(heights_diff_Tremoval, 50, density=True, facecolor='b', alpha=0.75)
+    plt.xlabel('Difference[m]')
+    plt.ylabel('Probability[%]')
+    plt.title('differences of triangle remove 20% simplification from original')
+    plt.grid(True)
+    plt.savefig("Tremoval Histogram.png", bbox_inches='tight')
+
+    fig8, ax8 = plt.subplots()
+    ax8.hist(heights_diff_Tcontraction, 50, density=True, facecolor='b', alpha=0.75)
+    plt.xlabel('Difference[m]')
+    plt.ylabel('Probability[%]')
+    plt.title('differences of triangle contraction 20% simplification from original')
+    plt.grid(True)
+    plt.savefig("Tcontraction Histogram.png", bbox_inches='tight')
+
+    fig9, ax9 = plt.subplots()
+    ax9.hist(heights_diff_Econtraction, 50, density=True, facecolor='b', alpha=0.75)
+    plt.xlabel('Difference[m]')
+    plt.ylabel('Probability[%]')
+    plt.title('differences of edge contraction 20% simplification from original')
+    plt.grid(True)
+    plt.savefig("Econtraction Histogram.png", bbox_inches='tight')
+
+
+    plt.show()
 
     # for i, triangle in enumerate(tri.simplices):
     #     tri_points = np.vstack((points[triangle[0]], points[triangle[1]], points[triangle[2]]))
     #     centroid = np.average(tri_points, axis=0)
     #     ax.annotate("({})".format(i), (centroid[0], centroid[1]))
 
-    plt.show()
+
 
     # 3d visualization
-    visualizeScipyTriangulation(triangulation, heights,'Original')
+    visualizeScipyTriangulation(triangulation, heights,'Original vtk')
     visualizeScipyTriangulation(triangulation_simplify_Vremoval, heights_simplify_Vremoval, 'VertexRemoval')
     visualizeScipyTriangulation(triangulation_simplify_Tremoval, heights_simplify_Tremoval, 'TriangleRemoval')
     visualizeScipyTriangulation(triangulation_simplify_Tcontraction, heights_simplify_Tcontraction, 'TriangleContraction')
